@@ -288,6 +288,20 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
                          "volume [%(cb_volume)s]."),
                      {'operation': operation, 'cb_volume': cb_volume})
             raise loopingcall.LoopingCallDone()
+        elif status == 2:
+            job_result = result_res.get("jobresult")
+            err_msg = job_result.get("errortext")
+            err_code = job_result.get("errorcode")
+            msg = (_(
+                'Error in Operation [%(operation)s]'
+                ' for volume [%(cb_volume)s] in CloudByte'
+                ' storage: [%(cb_error)s], '
+                'error code: [%(error_code)s] ' %
+                {'cb_error': err_msg,
+                 'error_code': err_code,
+                 'cb_volume': cb_volume,
+                 'operation': operation}))
+            raise exception.VolumeBackendAPIException(data=msg)
         elif count == max_retries:
             # All attempts exhausted
             LOG.error(_LE("CloudByte operation [%(operation)s] failed"
