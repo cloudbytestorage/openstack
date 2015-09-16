@@ -45,9 +45,12 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         1.1.1 - Initiator Group changes
         1.2.0 - Optimzied API request changes
         1.2.1 - Volume retype changes
+        1.2.2 - Volume Create failure detection
+        1.2.3 - Setup Error Detection
+        1.2.4 - Update ig to None before delete volume
     """
     # Version of this Cinder driver
-    VERSION = '1.2.1'
+    VERSION = '1.2.4'
     # Version of CB Storage
     CB_VERSION = 140528
 
@@ -114,6 +117,41 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         url = url + apistring
 
         return url
+
+    def check_for_setup_error(self):
+        """Returns an error if config values aren't correct."""
+
+        # Gathering ID's from /etc/cinder/cinder.conf
+        CB_ACCOUNT_ID = self.configuration.safe_get('cb_account_id')
+        CB_TSM_ID = self.configuration.safe_get('cb_tsm_id')
+        CB_DATASET_ID = self.configuration.safe_get('cb_dataset_id')
+
+        # Invalid ID's List
+        invalid_ids = []
+
+        params = {}
+
+        cmd = "listTsm"
+
+        tsm_data = self._api_request_for_cloudbyte(cmd, params)
+        tsm_data = tsm_data["listTsmResponse"]
+        tsm_data = tsm_data["listTsm"]
+        tsm_data = tsm_data[0]
+
+        if CB_ACCOUNT_ID != tsm_data["accountid"]:
+            invalid_ids.append("cb_account_id")
+
+        if CB_TSM_ID != tsm_data["id"]:
+            invalid_ids.append("cb_tsm_id")
+
+        if CB_DATASET_ID != tsm_data["datasetid"]:
+            invalid_ids.append("cb_dataset_id")
+
+        if invalid_ids:
+            raise exception.InvalidInput(
+                reason = ("INVALID %s w.r.t CloudByte Storage.") %
+                           ', '.join(invalid_ids))
+        return
 
     def _extract_http_error(self, error_data):
         # extract the error message from error_data
@@ -210,6 +248,7 @@ class CloudByteISCSIDriver(SanISCSIDriver):
                                  ". Http status: " + str(http_status) +
                                  ", Error: ") + str(error_details)
                     LOG.error(error_msg)
+                    raise exception.VolumeBackendAPIException(error_msg)
 
                     # Try again if there was no error message from CloudByte
                     # & it was not a success as well on its first attempt.
@@ -625,6 +664,19 @@ class CloudByteISCSIDriver(SanISCSIDriver):
                 success_job_response = self._parse_create_volume_job_resp(
                     result_res)
                 break
+            elif status == 2:
+                job_result = result_res.get("jobresult")
+                err_msg = job_result.get("errortext")
+                err_code = job_result.get("errorcode")
+                msg = ('Error creating volume [%(vol_name)s] '
+                       'in CloudByte storage: [%(cb_error)s], '
+                       'error code: [%(error_code)s] ' %
+                       {'cb_error': err_msg,
+                        'error_code': err_code,
+                        'vol_name': volume_name})
+
+                LOG.error(msg)
+                raise exception.VolumeBackendAPIException(msg)
 
             elif counter == self.configuration.confirm_vol_sleep_counter:
                 # All attempts exhausted
@@ -1304,6 +1356,8 @@ class CloudByteISCSIDriver(SanISCSIDriver):
 
             # delete volume at CloudByte
             if cb_volume_id is not None:
+                # Need to set the initiator group to None before deleting
+                self._update_initiator_group(cb_volume_id, "None")
 
                 LOG.debug("Will delete CloudByte storage volume [%(cb_vol)s] "
                           "w.r.t OpenStack volume [%(stack_vol)s]",
@@ -1780,3 +1834,35 @@ class CloudByteISCSIDriver(SanISCSIDriver):
                      {'cb_vol': cb_volume_id,
                       'stack_vol': source_volume_id})
         return True
+
+    def _update_initiator_group(self, volume_id, ig_name):
+
+        # Get account id of this account
+        account_name = self.configuration.cb_account_name
+        account_id = self._get_account_id_from_name(account_name)
+
+        # Fetch the initiator group ID
+        params = {"accountid": account_id}
+
+        iscsi_initiator_data = self._api_request_for_cloudbyte(
+            'listiSCSIInitiator', params)
+
+        # Filter the list of initiator groups with the name
+        ig_id = self._get_initiator_group_id_from_response(
+            iscsi_initiator_data, ig_name)
+
+        params = {"storageid": volume_id}
+
+        iscsi_service_data = self._api_request_for_cloudbyte(
+            'listVolumeiSCSIService', params)
+        iscsi_id = self._get_iscsi_service_id_from_response(
+            volume_id, iscsi_service_data)
+
+        # Update the iscsi service with above fetched iscsi_id
+        self._request_update_iscsi_service(iscsi_id, ig_id, None)
+
+        LOG.debug("CloudByte initiator group updated successfully for volume "
+                  "[%(vol)s] with ig [%(ig)s].",
+                  {'vol': volume_id,
+                   'ig': ig_name})
+
