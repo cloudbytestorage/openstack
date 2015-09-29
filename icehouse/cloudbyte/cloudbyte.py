@@ -126,7 +126,6 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         id_params = self._fetch_volume_params_by_ids_from_config()
 
         # Gathering NAME's from /etc/cinder/cinder.conf
-        # if id_params is None
         if id_params is None:
             name_params = self._fetch_volume_params_by_names_from_config()
 
@@ -295,7 +294,6 @@ class CloudByteISCSIDriver(SanISCSIDriver):
                                  ". Http status: " + str(http_status) +
                                  ", Error: ") + str(error_details)
                     LOG.error(error_msg)
-                    raise exception.VolumeBackendAPIException(error_msg)
 
                     # Try again if there was no error message from CloudByte
                     # & it was not a success as well on its first attempt.
@@ -995,16 +993,13 @@ class CloudByteISCSIDriver(SanISCSIDriver):
 
         volumes = volumes_res.get('filesystem')
 
-        if volumes is None:
-            raise exception.VolumeBackendAPIException(
-                "Error: Volume not found in CloudByte storage.")
-
         volume_id = None
 
-        for vol in volumes:
-            if vol['id'] == cb_volume_id:
-                volume_id = vol['id']
-                break
+        if volumes is not None:
+            for vol in volumes:
+                if vol['id'] == cb_volume_id:
+                    volume_id = vol['id']
+                    break
 
         return volume_id
 
