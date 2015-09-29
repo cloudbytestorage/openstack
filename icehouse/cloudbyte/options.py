@@ -34,13 +34,20 @@ cloudbyte_connection_opts = [
     cfg.StrOpt('cb_tsm_id',
                default=None,
                help=('Refers to VSM ID.')),
-    cfg.IntOpt('confirm_vol_sleep_interval',
-               default=2,
+    cfg.IntOpt('confirm_volume_create_retry_interval',
+               default=10,
                help=('Sleep value is in seconds.')),
-    cfg.IntOpt('confirm_vol_sleep_counter',
-               default=3,
+    cfg.IntOpt('confirm_volume_create_sleep_counter',
+               default=5,
                help=('Will confirm a successful volume '
-                     'creation by making this many attempts.')), ]
+                     'creation by making this many attempts.')),
+    cfg.IntOpt('confirm_volume_delete_retry_interval',
+               default=10,
+               help=('Sleep value is in seconds.')),
+    cfg.IntOpt('confirm_volume_delete_sleep_counter',
+               default=5,
+               help=('Will confirm a successful volume '
+                     'deletion by making this many attempts.')), ]
 
 cloudbyte_add_qosgroup_opts = [
     cfg.DictOpt('add_qosgroup',

@@ -35,6 +35,7 @@ LOG = logging.getLogger(__name__)
 
 
 class CloudByteISCSIDriver(SanISCSIDriver):
+
     """CloudByte ISCSI Driver.
 
     Version history:
@@ -42,11 +43,16 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         1.1.0 - Dynamic VSM changes
         1.1.1 - Initiator Group changes
         1.2.0 - Optimzied API request changes
+        1.2.1 - Setup Error Detection
+              - Volume Create failure detection
+              - Update ig to None before delete volume
+              - Delete wait logic
     """
 
-    VERSION = '1.2.0'
+    # Version of this Cinder driver
+    VERSION = '1.2.1'
 
-    # params used for CB REST calls.
+    # Params used for CB REST calls.
     # These are provided from Cinder API layer
     SAN_IP = 'san_ip'
     API_KEY = 'apiKey'
@@ -54,6 +60,7 @@ class CloudByteISCSIDriver(SanISCSIDriver):
     TSM_ID = 'tsmid'
     ACCOUNT_ID = 'accountid'
     DATASET_ID = 'datasetid'
+    QOS_GROUP_ID = 'qosgroupid'
 
     ACCOUNT_NAME = 'account_name'
     TSM_NAME = 'tsm_name'
@@ -108,6 +115,90 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         url = url + apistring
 
         return url
+
+    def check_for_setup_error(self):
+        """Returns an error if config values aren't correct."""
+
+        id_params = {}
+        name_params = {}
+
+        # Gathering ID's from /etc/cinder/cinder.conf
+        id_params = self._fetch_volume_params_by_ids_from_config()
+
+        # Gathering NAME's from /etc/cinder/cinder.conf
+        # if id_params is None
+        if id_params is None:
+            name_params = self._fetch_volume_params_by_names_from_config()
+
+        cmd = "listTsm"
+
+        tsm_data = self._api_request_for_cloudbyte(cmd, {})
+        tsm_data = tsm_data["listTsmResponse"]
+        tsm_data = tsm_data["listTsm"]
+        tsm_data = tsm_data[0]
+
+        # If IDs then check for valid IDs
+        if id_params is not None:
+            self._ids_validity_check(id_params, tsm_data)
+        # If Names then check for valid names
+        else:
+            self._names_validity_check(name_params, tsm_data)
+
+        return
+
+    def _ids_validity_check(self, id_params, tsm_data):
+        """Throws an exception if ID values aren't correct."""
+
+        # Gathering ID's from params
+        cb_accountid = id_params.get(self.ACCOUNT_ID)
+        cb_datasetid = id_params.get(self.DATASET_ID)
+        cb_tsmid = id_params.get(self.TSM_ID)
+
+        # Invalid ID's List
+        invalid_ids = []
+
+        if (cb_accountid is not None and
+           cb_accountid != tsm_data.get("accountid")):
+            invalid_ids.append("cb_account_id")
+
+        if cb_tsmid is not None and cb_tsmid != tsm_data.get("id"):
+            invalid_ids.append("cb_tsm_id")
+
+        if (cb_datasetid is not None and
+           cb_datasetid != tsm_data.get("datasetid")):
+            invalid_ids.append("cb_dataset_id")
+
+        if invalid_ids:
+            raise exception.InvalidInput(
+                reason=("Cinder configuration has invalid values"
+                        " [%s] w.r.t CloudByte Storage.") %
+                ', '.join(invalid_ids))
+
+        return
+
+    def _names_validity_check(self, name_params, tsm_data):
+        """Throws an exception if ID values aren't correct."""
+
+        # Gathering Name's from params
+        tsm_name = name_params.get(self.TSM_NAME)
+        cb_accountname = name_params.get(self.ACCOUNT_NAME)
+
+        # Invalid NAME's List
+        invalid_names = []
+
+        if tsm_name is not None and tsm_name != tsm_data.get("name"):
+            invalid_names.append("tsm_name")
+
+        if (cb_accountname is not None and
+           cb_accountname != tsm_data.get("accountname")):
+            invalid_names.append("cb_account_name")
+
+        if invalid_names:
+            raise exception.InvalidInput(
+                reason=("Cinder configuration has invalid values"
+                        " [%s] w.r.t CloudByte Storage.") %
+                ', '.join(invalid_names))
+        return
 
     def _extract_http_error(self, error_data):
         # extract the error message from error_data
@@ -204,6 +295,7 @@ class CloudByteISCSIDriver(SanISCSIDriver):
                                  ". Http status: " + str(http_status) +
                                  ", Error: ") + str(error_details)
                     LOG.error(error_msg)
+                    raise exception.VolumeBackendAPIException(error_msg)
 
                     # Try again if there was no error message from CloudByte
                     # & it was not a success as well on its first attempt.
@@ -273,38 +365,37 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         return new_opts_dict
 
     def _get_qos_props(self, volume_metadata):
-        qos_params = {}
+        qos_props = {}
 
-        # set the qos related values
-        qos_params['iops'] = volume_metadata.get(self.IOPS)
-        qos_params['latency'] = volume_metadata.get(self.LATENCY)
-        qos_params['graceallowed'] = volume_metadata.get(self.GRACEALLOWED)
-        qos_params['networkspeed'] = volume_metadata.get(self.NETWORKSPEED)
-        qos_params['memlimit'] = volume_metadata.get(self.MEMLIMIT)
-        qos_params['tpcontrol'] = volume_metadata.get(self.TPCONTROL)
-        qos_params['throughput'] = volume_metadata.get(self.THROUGHPUT)
-        qos_params['iopscontrol'] = volume_metadata.get(self.IOPSCONTROL)
+        # Set QoS related properties
+        # The right hand constants are this driver specific
+        # The right hand constants may or maynot match CB storage
+        qos_props['iops'] = volume_metadata.get(self.IOPS)
+        qos_props['latency'] = volume_metadata.get(self.LATENCY)
+        qos_props['graceallowed'] = volume_metadata.get(self.GRACEALLOWED)
+        qos_props['networkspeed'] = volume_metadata.get(self.NETWORKSPEED)
+        qos_props['memlimit'] = volume_metadata.get(self.MEMLIMIT)
+        qos_props['tpcontrol'] = volume_metadata.get(self.TPCONTROL)
+        qos_props['throughput'] = volume_metadata.get(self.THROUGHPUT)
+        qos_props['iopscontrol'] = volume_metadata.get(self.IOPSCONTROL)
 
-        return qos_params
+        return qos_props
 
-    def _additional_create_vol_props(self, create_vol_params, volume_metadata):
+    def _get_vol_props(self, volume_metadata):
 
-        if create_vol_params is None:
-            create_vol_params = {}
+        vol_props = {}
 
-        # add more properties
-        create_vol_params['blocklength'] = volume_metadata.get(
-            self.BLOCKLENGTH)
-        create_vol_params['compression'] = volume_metadata.get(
-            self.COMPRESSION)
-        create_vol_params['deduplication'] = volume_metadata.get(
-            self.DEDUPLICATION)
-        create_vol_params['sync'] = volume_metadata.get(
-            self.SYNC)
-        create_vol_params['recordsize'] = volume_metadata.get(
-            self.RECORDSIZE)
-        create_vol_params['protocoltype'] = volume_metadata.get(
-            self.PROTOCOLTYPE)
+        # Set volume related properties
+        # The right hand constants are this driver specific
+        # The right hand constants may or maynot match CB storage
+        vol_props['blocklength'] = volume_metadata.get(self.BLOCKLENGTH)
+        vol_props['compression'] = volume_metadata.get(self.COMPRESSION)
+        vol_props['deduplication'] = volume_metadata.get(self.DEDUPLICATION)
+        vol_props['sync'] = volume_metadata.get(self.SYNC)
+        vol_props['recordsize'] = volume_metadata.get(self.RECORDSIZE)
+        vol_props['protocoltype'] = volume_metadata.get(self.PROTOCOLTYPE)
+
+        return vol_props
 
     def _add_qos_group_request(self, volume, tsmid, volume_name,
                                volume_metadata):
@@ -352,12 +443,15 @@ class CloudByteISCSIDriver(SanISCSIDriver):
 
         params[self.DATASET_ID] = create_volume_params[self.DATASET_ID]
         params['name'] = volume_name
-        # params['qosgroupid'] = qosgroupid
+
+        # qos group id is optional from v2 onwards
+        if create_volume_params.get(self.QOS_GROUP_ID) is not None:
+            params['qosgroupid'] = create_volume_params[self.QOS_GROUP_ID]
 
         params[self.TSM_ID] = create_volume_params[self.TSM_ID]
         params['quotasize'] = quotasize
 
-        # Add the qos related values
+        # Add the qos related props
         params['iops'] = create_volume_params.get(self.IOPS)
         params['latency'] = create_volume_params.get(self.LATENCY)
         params['graceallowed'] = create_volume_params.get(self.GRACEALLOWED)
@@ -367,20 +461,22 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         params['throughput'] = create_volume_params.get(self.THROUGHPUT)
         params['iopscontrol'] = create_volume_params.get(self.IOPSCONTROL)
 
-        # add more properties required to create volume
-        self._additional_create_vol_props(params, vol_metadata)
-
-        # Add the missing params from configuration
-        params = self._override_params(params,
-                                       self.configuration.create_volume)
+        # Add volume related props
+        params['blocklength'] = create_volume_params.get(self.BLOCKLENGTH)
+        params['compression'] = create_volume_params.get(self.COMPRESSION)
+        params['deduplication'] = create_volume_params.get(self.DEDUPLICATION)
+        params['sync'] = create_volume_params.get(self.SYNC)
+        params['recordsize'] = create_volume_params.get(self.RECORDSIZE)
+        params['protocoltype'] = create_volume_params.get(self.PROTOCOLTYPE)
 
         # update the params with http connection info
         self._update_http_conn_params(params, vol_metadata)
 
-        data = self._api_request_for_cloudbyte("createVolume2", params)
+        data = self._api_request_for_cloudbyte("createVolume", params)
+
         return data
 
-    def _queryAsyncJobResult_request(self, jobid, vol_metadata):
+    def _query_asyncjobresult_request(self, jobid, vol_metadata):
         async_cmd = "queryAsyncJobResult"
         params = {
             "jobId": jobid,
@@ -459,9 +555,10 @@ class CloudByteISCSIDriver(SanISCSIDriver):
 
         return parsed_job_response
 
-    def _confirm_creation_volume(self, volume_response, volume_name,
+    def _confirm_volume_creation(self, volume_response, volume_name,
                                  vol_metadata):
-        vol_res = volume_response.get('createvolume2response')
+
+        vol_res = volume_response.get('createvolumeresponse')
 
         if vol_res is None:
             raise exception.VolumeBackendAPIException(
@@ -479,10 +576,10 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         counter = 1
         while True:
             # wait for n seconds -- mentioned in configuration
-            time.sleep(self.configuration.confirm_vol_sleep_interval)
+            time.sleep(self.configuration.confirm_volume_create_retry_interval)
             # query the CloudByte with this jobid
-            volume_response = self._queryAsyncJobResult_request(jobid,
-                                                                vol_metadata)
+            volume_response = (
+                self._query_asyncjobresult_request(jobid, vol_metadata))
             # check the status
             result_res = volume_response.get('queryasyncjobresultresponse')
 
@@ -499,7 +596,23 @@ class CloudByteISCSIDriver(SanISCSIDriver):
                     result_res)
                 break
 
-            elif counter == self.configuration.confirm_vol_sleep_counter:
+            elif status == 2:
+                job_result = result_res.get("jobresult")
+                err_msg = job_result.get("errortext")
+                err_code = job_result.get("errorcode")
+                msg = ('Error creating volume [%(vol_name)s] '
+                       'in CloudByte storage: [%(cb_error)s], '
+                       'error code: [%(error_code)s] ' %
+                       {'cb_error': err_msg,
+                        'error_code': err_code,
+                        'vol_name': volume_name})
+
+                LOG.error(msg)
+                raise exception.VolumeBackendAPIException(msg)
+
+            elif counter == (
+                self.configuration.confirm_volume_create_sleep_counter
+            ):
                 # All attempts exhausted
                 err_msg = None
                 err_code = None
@@ -526,6 +639,86 @@ class CloudByteISCSIDriver(SanISCSIDriver):
                           {'count': counter, 'vol': volume_name})
 
         return success_job_response
+
+    def _confirm_volume_deletion(self, volume_response, volume_id,
+                                 vol_metadata):
+
+        vol_res = volume_response.get('deleteFileSystemResponse')
+
+        if vol_res is None:
+            raise exception.VolumeBackendAPIException(
+                "Error: Null response received while deleting volume [%s] "
+                "in CloudByte storage." % volume_id)
+
+        jobid = vol_res.get('jobid')
+
+        if jobid is None:
+            raise exception.VolumeBackendAPIException(
+                "Error: Jobid not found w.r.t CloudByte's "
+                " delete volume [%s]." % volume_id)
+
+        counter = 1
+        while True:
+            # wait for n seconds -- mentioned in configuration
+            time.sleep(self.configuration.confirm_volume_delete_retry_interval)
+            # query the CloudByte with this jobid
+            volume_response = (
+                self._query_asyncjobresult_request(jobid, vol_metadata))
+            # check the status
+            result_res = volume_response.get('queryasyncjobresultresponse')
+
+            status = 0
+            if result_res is not None:
+                status = result_res.get('jobstatus')
+                LOG.debug("Volume [%(vol)s] deletion status [%(stat)s]." %
+                          {'vol': volume_id, 'stat': status})
+
+            if status == 1:
+                LOG.debug("Volume [%s] deleted successfully in "
+                          "CloudByte", volume_id)
+                break
+
+            elif status == 2:
+                job_result = result_res.get("jobresult")
+                err_msg = job_result.get("errortext")
+                err_code = job_result.get("errorcode")
+                msg = ('Error deleting volume [%(vol_name)s] '
+                       'in CloudByte storage: [%(cb_error)s], '
+                       'error code: [%(error_code)s] ' %
+                       {'cb_error': err_msg,
+                        'error_code': err_code,
+                        'vol_id': volume_id})
+
+                LOG.error(msg)
+                raise exception.VolumeBackendAPIException(msg)
+
+            elif counter == (
+                self.configuration.confirm_volume_create_sleep_counter
+            ):
+                # All attempts exhausted
+                err_msg = None
+                err_code = None
+                if(result_res.get("msg") == "1" or result_res.get("msg") == 1):
+                    job_result = result_res.get("jobresult")
+                    if(job_result is not None):
+                        err_msg = job_result.get("errortext")
+                        err_code = job_result.get("errorcode")
+
+                msg = ('Delay or Error deleting volume [%(vol_name)s] '
+                       'in CloudByte storage: [%(cb_error)s], '
+                       'error code: [%(error_code)s] ' %
+                       {'cb_error': err_msg,
+                        'error_code': err_code,
+                        'vol_id': volume_id})
+
+                LOG.error(msg)
+                raise exception.VolumeBackendAPIException(msg)
+
+            else:
+                counter += 1
+                LOG.debug("Will re-confirm [%(count)s] the volume [%(vol)s] "
+                          "deletion at CloudByte storage." %
+                          {'count': counter, 'vol': volume_id})
 
     def _get_volume_id_from_response(self, cb_volumes, volume_name):
         """Search the volume in CloudByte."""
@@ -610,7 +803,18 @@ class CloudByteISCSIDriver(SanISCSIDriver):
 
         return model_update
 
-    def _get_initiator_group_id_from_response(self, data):
+    def _build_provider_details(self, successful_vol_create_resp, volume):
+
+        if (successful_vol_create_resp.get('ipaddress') is not None and
+                successful_vol_create_resp.get('iqnname') is not None):
+
+            return self._build_provider_details_from_params(
+                successful_vol_create_resp.get('ipaddress'),
+                successful_vol_create_resp.get('iqnname'))
+        else:
+            return self._build_provider_details_from_volume(volume)
+
+    def _get_initiator_group_id_from_response(self, data, ig_filter):
         """Find iSCSI initiator group id."""
 
         ig_list_res = data.get('listInitiatorsResponse')
@@ -631,19 +835,18 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         # Filter the initiator group set in configuration
         # It is expected to have this initiator group name available
         # in CloudByte storage
-        ig_name = self.configuration.cb_initiator_group_name
         for ig in ig_list:
-            if ig.get('name') == ig_name:
+            if ig.get('initiatorgroup') == ig_filter:
                 LOG.debug("Initiator group [%(ig)s] "
                           "will be set against the CloudByte storage volume.",
-                          {'ig': ig_name})
+                          {'ig': ig_filter})
                 ig_id = ig['id']
                 break
 
         if ig_id is None:
             raise exception.VolumeBackendAPIException(
                 "Initiator group [%s] not found at CloudByte "
-                "storage." % ig_name)
+                "storage." % ig_filter)
 
         return ig_id
 
@@ -924,18 +1127,15 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         params = {}
         # set the account_id
         params[self.ACCOUNT_ID] = (
-            self.configuration.safe_get('cb_account_id') or None
-            )
+            self.configuration.safe_get('cb_account_id') or None)
 
         # extract dataset id & update the params dict
         params[self.DATASET_ID] = (
-            self.configuration.safe_get('cb_dataset_id') or None
-            )
+            self.configuration.safe_get('cb_dataset_id') or None)
 
         # extract tsmid & update the params dict
         params[self.TSM_ID] = (
-            self.configuration.safe_get('cb_tsm_id') or None
-            )
+            self.configuration.safe_get('cb_tsm_id') or None)
 
         if (params[self.ACCOUNT_ID] is not None
                 and params[self.DATASET_ID] is not None
@@ -1008,8 +1208,7 @@ class CloudByteISCSIDriver(SanISCSIDriver):
             ('-', ''),
             ('_', ''),
             ('+', ''),
-            (' ', '')
-            ]
+            (' ', '')]
 
         for search, replacement in substitutions:
             name = name.replace(search, replacement)
@@ -1044,22 +1243,16 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         # get the create volume params
         create_volume_params = self._build_create_volume_params(vol_metadata)
 
-        # send request to create a qos group before creating a volume
-        # LOG.debug("Creating qos group for CloudByte volume [%s].",
-        #    volume_name)
-        #qos_data = self._add_qos_group_request(
-        #    volume, create_volume_params[self.TSM_ID],
-        #    volume_name, vol_metadata)
-
-        self._add_qos_params_to_volume_params(
+        self._add_volume_props_to_volume_params(
+            ctxt,
             create_volume_params,
             vol_metadata)
 
-        # extract the qos group id from response
-        # qosgroupid = qos_data['addqosgroupresponse']['qosgroup']['id']
-
-        # LOG.debug("Successfully created qos group for CloudByte volume [%s]",
-        #         volume_name)
+        self._create_qos_group(
+            ctxt,
+            create_volume_params,
+            volume_name,
+            vol_metadata)
 
         # Send a create volume request to CloudByte API
         vol_data = self._create_volume_request(
@@ -1071,19 +1264,20 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         # Since create volume is an async call;
         # need to confirm the creation before proceeding further
         success_job_response = (
-            self._confirm_creation_volume(vol_data, volume_name, vol_metadata)
-            )
+            self._confirm_volume_creation(vol_data, volume_name, vol_metadata))
 
-        # fetch iscsi ID
-        #listFileSysParams = {}
-        #self._update_http_conn_params(listFileSysParams, vol_metadata)
-
-        #cb_volumes = self._api_request_for_cloudbyte(
-        #    'listFileSystem', listFileSysParams)
-
-        #volume_id = self._get_volume_id_from_response(cb_volumes, volume_name)
+        # CB Volume
+        cb_volume = None
         volume_id = success_job_response.get('id')
 
+        if volume_id is None:
+            cb_volume = self._get_cb_volume_from_metadata(
+                vol_metadata,
+                volume_name)
+
+            volume_id = cb_volume.get('id')
+
+        # Fetch iscsi ID
         list_vol_iscsi_ser_params = {
             "storageid": volume_id
         }
@@ -1106,8 +1300,10 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         iscsi_initiator_data = self._api_request_for_cloudbyte(
             'listiSCSIInitiator', list_iscsi_init_params)
 
+        ig_name = self.configuration.cb_initiator_group_name
+
         ig_id = self._get_initiator_group_id_from_response(
-            iscsi_initiator_data)
+            iscsi_initiator_data, ig_name)
 
         LOG.debug("Updating iscsi service for CloudByte volume: [%s]",
                   volume_name)
@@ -1125,15 +1321,111 @@ class CloudByteISCSIDriver(SanISCSIDriver):
             ctxt, volume['id'], vol_metadata, False)
 
         # provide the model after successful completion of above steps
-        provider = self._build_provider_details_from_params(
-            success_job_response.get('ipaddress'),
-            success_job_response.get('iqnname'))
+        provider = self._build_provider_details(
+            success_job_response,
+            cb_volume)
 
         LOG.info("Successfully created a CloudByte volume [%(cb_vol)s] "
                  "w.r.t openstack volume [%(stack_vol)s]",
                  {'cb_vol': volume_name, 'stack_vol': volume.get('id')})
 
         return provider
+
+    def _add_volume_props_to_volume_params(self, context,
+                                           create_volume_params,
+                                           volume_metadata):
+        # Extract vol props from volume_metadata
+        vol_props = self._get_vol_props(volume_metadata)
+
+        # Add the missing vol props from configuration
+        vol_props = self._override_params(
+            vol_props,
+            self.configuration.create_volume)
+
+        vol_props = self._filter_vol_props(vol_props)
+
+        # Add vol params to create volume params
+        for key, value in vol_props.iteritems():
+            if value is not None:
+                create_volume_params[key] = value
+
+    def _filter_vol_props(self, all_props):
+        vol_props = {}
+
+        if all_props:
+            qos = ['blocklength', 'compression', 'deduplication', 'sync',
+                   'recordsize', 'protocoltype']
+            for key, value in all_props.iteritems():
+                if key in qos and value is not None:
+                    vol_props[key] = value
+        return vol_props
+
+    def _create_qos_group(self, context, create_volume_params,
+                          volume_name,
+                          vol_metadata):
+        """This will create a QoS Group or will provide QoS props."""
+
+        qosgroupid = None
+
+        # send request to create a qos group
+        LOG.debug("Creating qos group for CloudByte volume [%s].", volume_name)
+        qos_data = self._add_qos_group_request(
+            context,
+            create_volume_params[self.TSM_ID],
+            volume_name,
+            vol_metadata)
+
+        # extract the qos group id from response
+        qosgroupid = qos_data['addqosgroupresponse']['qosgroup']['id']
+
+        LOG.debug(
+            "Successfully created qos group for"
+            " CloudByte volume [%s]", volume_name)
+
+        create_volume_params[self.QOS_GROUP_ID] = qosgroupid
+
+    def _get_cb_volume_from_metadata(self, vol_metadata, volume_name):
+        listfilesysparams = {}
+        self._update_http_conn_params(listfilesysparams, vol_metadata)
+
+        cb_volumes = self._api_request_for_cloudbyte(
+            'listFileSystem', listfilesysparams)
+
+        cb_volume = self._get_cb_volume_from_list(
+            cb_volumes,
+            volume_name)
+
+        return cb_volume
+
+    def _get_cb_volume_from_list(self, cb_volumes, volume_name):
+        """Search the volume in CloudByte."""
+
+        vol_res = cb_volumes.get('listFilesystemResponse')
+
+        if vol_res is None:
+            raise exception.VolumeBackendAPIException(
+                "Error: Null response received from CloudByte's "
+                "list filesystem API.")
+
+        volumes = vol_res.get('filesystem')
+
+        if volumes is None:
+            raise exception.VolumeBackendAPIException(
+                'Error: No volumes found at CloudByte storage.')
+
+        volume = None
+
+        for vol in volumes:
+            if vol['name'] == volume_name:
+                volume = vol
+                break
+
+        if volume is None:
+            raise exception.VolumeBackendAPIException(
+                "Error: Volume [%s] not found at CloudByte storage."
+                % volume_name)
+
+        return volume
 
     def delete_volume(self, volume):
 
@@ -1148,7 +1440,7 @@ class CloudByteISCSIDriver(SanISCSIDriver):
             ctxt, source_volume_id)
 
         # finding CB volume id w.r.t. openstack source volume
-        cb_volume_id = vol_metadata['cb_volume_id']
+        cb_volume_id = vol_metadata.get('cb_volume_id')
 
         LOG.debug("CloudByte storage volume [%(cb_vol)s] will be deleted "
                   " w.r.t OpenStack volume [%(stack_vol)s]",
@@ -1170,6 +1462,11 @@ class CloudByteISCSIDriver(SanISCSIDriver):
 
             # delete volume at CloudByte
             if cb_volume_id is not None:
+                # Need to set the initiator group to None before deleting
+                self._update_initiator_group(
+                    cb_volume_id,
+                    'None',
+                    vol_metadata)
 
                 LOG.debug("Will delete CloudByte storage volume [%(cb_vol)s] "
                           "w.r.t OpenStack volume [%(stack_vol)s]",
@@ -1182,7 +1479,15 @@ class CloudByteISCSIDriver(SanISCSIDriver):
 
                 self._update_http_conn_params(params, vol_metadata)
 
-                self._api_request_for_cloudbyte('deleteFileSystem', params)
+                del_res = (
+                    self._api_request_for_cloudbyte('deleteFileSystem', params)
+                )
+
+                # Volume delete retry call
+                self._confirm_volume_deletion(
+                    del_res,
+                    cb_volume_id,
+                    vol_metadata)
 
                 LOG.info("Successfully deleted CloudByte storage volume "
                          "[%(cb_vol)s] w.r.t OpenStack volume [%(stack_vol)s]",
@@ -1492,7 +1797,7 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         self._update_http_conn_params(params, vol_metadata)
 
         # request the CloudByte api to update the volume
-        self._api_request_for_cloudbyte('updateFileSystem', params)
+        self._api_request_for_cloudbyte("updateFileSystem", params)
 
     def update_volume_metadata(self, volume, metadata):
         """Update the volume metadata at CloudByte storage."""
@@ -1586,3 +1891,34 @@ class CloudByteISCSIDriver(SanISCSIDriver):
             self.volume_stats = data
 
         return self.volume_stats
+
+    def _update_initiator_group(self, volume_id, ig_name, vol_metadata):
+
+        # Get account id of this account
+        account_name = self.configuration.cb_account_name
+        account_id = self._get_account_id_from_name(account_name, vol_metadata)
+
+        # Fetch the initiator group ID
+        params = {"accountid": account_id}
+
+        iscsi_initiator_data = self._api_request_for_cloudbyte(
+            'listiSCSIInitiator', params)
+
+        # Filter the list of initiator groups with the name
+        ig_id = self._get_initiator_group_id_from_response(
+            iscsi_initiator_data, ig_name)
+
+        params = {"storageid": volume_id}
+
+        iscsi_service_data = self._api_request_for_cloudbyte(
+            'listVolumeiSCSIService', params)
+        iscsi_id = self._get_iscsi_service_id_from_response(
+            volume_id, iscsi_service_data)
+
+        # Update the iscsi service with above fetched iscsi_id
+        self._request_update_iscsi_service(iscsi_id, ig_id, None)
+
+        LOG.debug("CloudByte initiator group updated successfully for volume "
+                  "[%(vol)s] with ig [%(ig)s].",
+                  {'vol': volume_id,
+                   'ig': ig_name})
