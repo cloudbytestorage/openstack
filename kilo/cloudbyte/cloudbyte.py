@@ -43,10 +43,16 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         1.1.1 - Add wait logic for delete volumes
         1.2.0 - Add retype support
         1.2.1 - Update ig to None before delete volume
+        1.2.2 - Setup error detection and minor bug fixes
     """
 
-    VERSION = '1.2.1'
+    VERSION = '1.2.2'
     volume_stats = {}
+
+    # Global variables used during Setup Error Check
+    ACCOUNT_NAME = 'cb_account_name'
+    TSM_NAME = 'cb_tsm_name'
+    APIKEY = 'cb_apikey'
 
     def __init__(self, *args, **kwargs):
         super(CloudByteISCSIDriver, self).__init__(*args, **kwargs)
@@ -88,6 +94,85 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         url = url + '&' + urllib.parse.urlencode(api)
 
         return url
+
+    def check_for_setup_error(self):
+        """Returns an error if config values aren't correct."""
+
+        config_params = {}
+
+        # Gathering params from /etc/cinder/cinder.conf
+        config_params = self._fetch_params_from_config()
+
+        tsm_cmd = "listTsm"
+        tsm_res = self._api_request_for_cloudbyte(tsm_cmd, {})
+        tsm_res = tsm_res["listTsmResponse"]
+        tsm_res = tsm_res["listTsm"]
+        tsm_res = tsm_res[0]
+
+        # Validity Check of Config params
+        self._validity_check(config_params, tsm_res)
+
+        return
+
+    def _fetch_params_from_config(self):
+        """Throws an exception if config values are None or Empty."""
+
+        tsm_name = None
+        account_name = None
+        apikey = None
+
+        # Get TSM/VSM, Account name and API Key from configuration
+        tsm_name = self.configuration.cb_tsm_name
+        account_name = self.configuration.cb_account_name
+        apikey = self.configuration.cb_apikey
+
+        # Empty param's list
+        empty_params = []
+
+        if (tsm_name is None or tsm_name == ''):
+            empty_params.append("cb_tsm_name")
+
+        if (account_name is None or account_name == ''):
+            empty_params.append("cb_account_name")
+
+        if (apikey is None or apikey == ''):
+            empty_params.append("cb_apikey")
+
+        if empty_params:
+            raise exception.InvalidInput(
+                reason=("Cinder configuration parameter [%s] either not set"
+                        " or has empty values w.r.t CloudByte Storage.") %
+                ', '.join(empty_params))
+
+        params = {}
+        params[self.TSM_NAME] = tsm_name
+        params[self.ACCOUNT_NAME] = account_name
+
+        return params
+
+    def _validity_check(self, config_params, tsm_res):
+        """Throws an exception if config values aren't correct."""
+
+        # Gathering values from params
+        tsm_name = config_params.get(self.TSM_NAME)
+        account_name = config_params.get(self.ACCOUNT_NAME)
+
+        # Invalid param's List
+        invalid_params = []
+
+        if tsm_name != tsm_res.get("name"):
+            invalid_params.append("cb_tsm_name")
+
+        if (account_name != tsm_res.get("accountname")):
+            invalid_params.append("cb_account_name")
+
+        if invalid_params:
+            raise exception.InvalidInput(
+                reason=("Cinder configuration has invalid values"
+                        " [%s] w.r.t CloudByte Storage.") %
+                ', '.join(invalid_params))
+
+        return
 
     def _extract_http_error(self, error_data):
         # Extract the error message from error_data
@@ -233,7 +318,7 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         data = self._api_request_for_cloudbyte("createVolume", params)
         return data
 
-    def _queryAsyncJobResult_request(self, jobid):
+    def _query_asyncjobesult_request(self, jobid):
         async_cmd = "queryAsyncJobResult"
         params = {
             "jobId": jobid,
@@ -266,7 +351,7 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         """CloudByte async calls via the FixedIntervalLoopingCall."""
 
         # Query the CloudByte storage with this jobid
-        volume_response = self._queryAsyncJobResult_request(jobid)
+        volume_response = self._query_asyncjobesult_request(jobid)
         count = retries['count']
 
         result_res = None
@@ -466,7 +551,7 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
         return model_update
 
-    def _get_initiator_group_id_from_response(self, data, filter=None):
+    def _get_initiator_group_id_from_response(self, data, filter):
         """Find iSCSI initiator group id."""
 
         ig_list_res = data.get('listInitiatorsResponse')
@@ -484,14 +569,8 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
         ig_id = None
 
-        ig_filter = None
-        if filter is None:
-            ig_filter = 'None'
-        else:
-            ig_filter = filter
-
         for ig in ig_list:
-            if ig.get('initiatorgroup') == ig_filter:
+            if ig.get('initiatorgroup') == filter:
                 ig_id = ig['id']
                 break
 
@@ -594,16 +673,13 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
         volumes = volumes_res.get('filesystem')
 
-        if volumes is None:
-            msg = _("No volume was found at CloudByte storage.")
-            raise exception.VolumeBackendAPIException(data=msg)
-
         volume_id = None
 
-        for vol in volumes:
-            if vol['id'] == cb_volume_id:
-                volume_id = vol['id']
-                break
+        if volumes is not None:
+            for vol in volumes:
+                if vol['id'] == cb_volume_id:
+                    volume_id = vol['id']
+                    break
 
         return volume_id
 
@@ -924,7 +1000,7 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
             # Delete volume at CloudByte
             if cb_volume_id is not None:
                 # Need to set the initiator group to None before deleting
-                self._update_initiator_group(cb_volume_id, "None")
+                self._update_initiator_group(cb_volume_id, 'None')
 
                 params = {"id": cb_volume_id}
                 del_res = self._api_request_for_cloudbyte('deleteFileSystem',
@@ -1199,9 +1275,9 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
             self._get_qos_by_volume_type(ctxt, new_type['id']))
 
         if update_qos_group_params:
-            listFileSysParams = {'id': cb_volume_id}
+            listfilesysparams = {'id': cb_volume_id}
             response = self._api_request_for_cloudbyte(
-                'listFileSystem', listFileSysParams)
+                'listFileSystem', listfilesysparams)
 
             response = response['listFilesystemResponse']
             cb_volume_list = response['filesystem']
