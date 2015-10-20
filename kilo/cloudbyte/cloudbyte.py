@@ -98,28 +98,19 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
     def check_for_setup_error(self):
         """Returns an error if config values aren't correct."""
 
-        config_params = {}
-
         # Gathering params from /etc/cinder/cinder.conf
         config_params = self._fetch_params_from_config()
 
         tsm_cmd = "listTsm"
         tsm_res = self._api_request_for_cloudbyte(tsm_cmd, {})
-        tsm_res = tsm_res["listTsmResponse"]
-        tsm_res = tsm_res["listTsm"]
-        tsm_res = tsm_res[0]
+        tsm_res = tsm_res["listTsmResponse"]['listTsm']
 
         # Validity Check of Config params
-        self._validity_check(config_params, tsm_res)
-
-        return
+        if config_params is not None:
+            self._validity_check(config_params, tsm_res)
 
     def _fetch_params_from_config(self):
         """Throws an exception if config values are None or Empty."""
-
-        tsm_name = None
-        account_name = None
-        apikey = None
 
         # Get TSM/VSM, Account name and API Key from configuration
         tsm_name = self.configuration.cb_tsm_name
@@ -129,26 +120,24 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         # Empty param's list
         empty_params = []
 
-        if (tsm_name is None or tsm_name == ''):
-            empty_params.append("cb_tsm_name")
+        if not tsm_name:
+            empty_params.append(self.TSM_NAME)
 
-        if (account_name is None or account_name == ''):
-            empty_params.append("cb_account_name")
+        if not account_name:
+            empty_params.append(self.ACCOUNT_NAME)
 
-        if (apikey is None or apikey == ''):
-            empty_params.append("cb_apikey")
+        if not apikey:
+            empty_params.append(self.APIKEY)
 
         if empty_params:
             raise exception.InvalidInput(
-                reason=("Cinder configuration parameter [%s] either not set"
-                        " or has empty values w.r.t CloudByte Storage.") %
-                ', '.join(empty_params))
+                reason=_("Cinder configuration parameter(s) %s either not set"
+                         " or has empty values w.r.t CloudByte Storage.") %
+                empty_params)
 
         params = {}
         params[self.TSM_NAME] = tsm_name
         params[self.ACCOUNT_NAME] = account_name
-
-        return params
 
     def _validity_check(self, config_params, tsm_res):
         """Throws an exception if config values aren't correct."""
@@ -160,19 +149,23 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         # Invalid param's List
         invalid_params = []
 
-        if tsm_name != tsm_res.get("name"):
-            invalid_params.append("cb_tsm_name")
+        # Counting the number of tsm present
+        tsm_count = len(tsm_res)
 
-        if (account_name != tsm_res.get("accountname")):
-            invalid_params.append("cb_account_name")
+        # Checking Validity of TSM against the TSM present
+        for tsm in tsm_count:
+            tsm_res[tsm]
+
+            if tsm_name != tsm_res.get("name"):
+                invalid_params.append(self.TSM_NAME)
+
+            if account_name != tsm_res.get("accountname"):
+                invalid_params.append(self.ACCOUNT_NAME)
 
         if invalid_params:
             raise exception.InvalidInput(
-                reason=("Cinder configuration has invalid values"
-                        " [%s] w.r.t CloudByte Storage.") %
-                ', '.join(invalid_params))
-
-        return
+                reason=_("Cinder configuration has invalid value(s)"
+                         " %s w.r.t CloudByte Storage.") % invalid_params)
 
     def _extract_http_error(self, error_data):
         # Extract the error message from error_data
