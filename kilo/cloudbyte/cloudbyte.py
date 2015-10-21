@@ -102,8 +102,8 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         config_params = self._fetch_params_from_config()
 
         tsm_cmd = "listTsm"
-        tsm_res = self._api_request_for_cloudbyte(tsm_cmd, {})
-        tsm_res = tsm_res["listTsmResponse"]['listTsm']
+        data = self._api_request_for_cloudbyte(tsm_cmd, {})
+        tsm_res = data["listTsmResponse"].get('listTsm')
 
         # Validity Check of Config params
         if config_params is not None:
@@ -139,6 +139,8 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         params[self.TSM_NAME] = tsm_name
         params[self.ACCOUNT_NAME] = account_name
 
+        return params
+
     def _validity_check(self, config_params, tsm_res):
         """Throws an exception if config values aren't correct."""
 
@@ -147,25 +149,21 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         account_name = config_params.get(self.ACCOUNT_NAME)
 
         # Invalid param's List
-        invalid_params = []
+        invalid_params = ['tsm_name', 'account_name']
 
-        # Counting the number of tsm present
-        tsm_count = len(tsm_res)
+        found = False
 
         # Checking Validity of TSM against the TSM present
-        for tsm in tsm_count:
-            tsm_res[tsm]
+        for tsm in tsm_res:
+            if tsm['name'] == tsm_name and tsm['accountname'] == account_name:
+                found = True
+                break
 
-            if tsm_name != tsm_res.get("name"):
-                invalid_params.append(self.TSM_NAME)
-
-            if account_name != tsm_res.get("accountname"):
-                invalid_params.append(self.ACCOUNT_NAME)
-
-        if invalid_params:
+        if not found:
             raise exception.InvalidInput(
-                reason=_("Cinder configuration has invalid value(s)"
-                         " %s w.r.t CloudByte Storage.") % invalid_params)
+                reason=_("Cinder configuration has either of these values "
+                         "[%s] invalid, w.r.t CloudByte Storage.") %
+                invalid_params)
 
     def _extract_http_error(self, error_data):
         # Extract the error message from error_data

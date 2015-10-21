@@ -129,17 +129,17 @@ class CloudByteISCSIDriver(SanISCSIDriver):
 
         cmd = "listTsm"
 
-        tsm_data = self._api_request_for_cloudbyte(cmd, {})
-        tsm_data = tsm_data["listTsmResponse"]["listTsm"]
+        data = self._api_request_for_cloudbyte(cmd, {})
+        tsms = data["listTsmResponse"].get("listTsm")
 
         # If IDs then check for valid IDs
         if id_params is not None:
-            self._ids_validity_check(id_params, tsm_data)
+            self._ids_validity_check(id_params, tsms)
         # If Names then check for valid names
         else:
-            self._names_validity_check(name_params, tsm_data)
+            self._names_validity_check(name_params, tsms)
 
-    def _ids_validity_check(self, id_params, tsm_data):
+    def _ids_validity_check(self, id_params, tsms):
         """Throws an exception if ID values aren't correct."""
 
         # Gathering ID's from params
@@ -148,56 +148,48 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         cb_tsmid = id_params.get(self.TSM_ID)
 
         # Invalid ID's List
-        invalid_ids = []
+        invalid_ids = ["cb_account_id", "cb_dataset_id", "cb_tsm_id"]
 
-        # Counting the number of tsm present
-        tsm_count = len(tsm_data)
+        found = False
 
         # Checking Validity of TSM against the TSM present
-        for tsm in tsm_count:
-            tsm_data[tsm]
+        for tsm in tsms:
+            if (tsm['accountid'] == cb_accountid
+                    and tsm['id'] == cb_tsmid
+                    and tsm['datasetid'] == cb_datasetid):
+                        found = True
+                        break
 
-            if cb_accountid != tsm_data.get("accountid"):
-                invalid_ids.append("cb_account_id")
-
-            if cb_tsmid != tsm_data.get("id"):
-                invalid_ids.append("cb_tsm_id")
-
-            if cb_datasetid != tsm_data.get("datasetid"):
-                invalid_ids.append("cb_dataset_id")
-
-        if invalid_ids:
+        if not found:
             raise exception.InvalidInput(
-                reason=("Cinder configuration has invalid values"
-                        " [%s] w.r.t CloudByte Storage.") % invalid_ids)
+                reason=("Cinder configuration has either of these values "
+                        "invalid %s, w.r.t CloudByte Storage.") %
+                invalid_ids)
 
-    def _names_validity_check(self, name_params, tsm_data):
-        """Throws an exception if ID values aren't correct."""
+    def _names_validity_check(self, name_params, tsms):
+        """Throws an exception if NAMES values aren't correct."""
 
         # Gathering Name's from params
         tsm_name = name_params.get(self.TSM_NAME)
         cb_accountname = name_params.get(self.ACCOUNT_NAME)
 
         # Invalid NAME's List
-        invalid_names = []
+        invalid_names = ["tsm_name", "cb_account_name"]
 
-        # Counting the number of tsm present
-        tsm_count = len(tsm_data)
+        found = False
 
         # Checking Validity of TSM against the TSM present
-        for tsm in tsm_count:
-            tsm_data[tsm]
+        for tsm in tsms:
+            if ((tsm['name'] == tsm_name) and
+               (tsm['accountname'] == cb_accountname)):
+                found = True
+                break
 
-            if tsm_name != tsm_data.get("name"):
-                invalid_names.append("tsm_name")
-
-            if cb_accountname != tsm_data.get("accountname"):
-                invalid_names.append("cb_account_name")
-
-        if invalid_names:
+        if not found:
             raise exception.InvalidInput(
-                reason=("Cinder configuration has invalid values"
-                        " [%s] w.r.t CloudByte Storage.") % invalid_names)
+                reason=("Cinder configuration has either of these values "
+                        "invalid %s, w.r.t CloudByte Storage.") %
+                invalid_names)
 
     def _extract_http_error(self, error_data):
         # extract the error message from error_data
