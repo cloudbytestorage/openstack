@@ -47,10 +47,11 @@ class CloudByteISCSIDriver(SanISCSIDriver):
               - Volume Create failure detection
               - Update ig to None before delete volume
               - Delete wait logic
+        1.2.2 - Minor Setup Error Detection improvements
     """
 
     # Version of this Cinder driver
-    VERSION = '1.2.1'
+    VERSION = '1.2.2'
 
     # Params used for CB REST calls.
     # These are provided from Cinder API layer
@@ -133,10 +134,14 @@ class CloudByteISCSIDriver(SanISCSIDriver):
 
         # If IDs then check for valid IDs
         if id_params is not None:
-            self._ids_validity_check(id_params, tsms)
+            result = self._ids_validity_check(id_params, tsms)
         # If Names then check for valid names
         else:
-            self._names_validity_check(name_params, tsms)
+            result = self._names_validity_check(name_params, tsms)
+
+        if result:
+            LOG.info("CloudByte driver setup is successfull "
+                     "for version : '%s'.", CloudByteISCSIDriver.VERSION)
 
     def _ids_validity_check(self, id_params, tsms):
         """Throws an exception if ID values aren't correct."""
@@ -165,6 +170,8 @@ class CloudByteISCSIDriver(SanISCSIDriver):
                         "invalid %s, w.r.t CloudByte Storage.") %
                 invalid_ids)
 
+        return True
+
     def _names_validity_check(self, name_params, tsms):
         """Throws an exception if NAMES values aren't correct."""
 
@@ -189,6 +196,8 @@ class CloudByteISCSIDriver(SanISCSIDriver):
                 reason=("Cinder configuration has either of these values "
                         "invalid %s, w.r.t CloudByte Storage.") %
                 invalid_names)
+
+        return True
 
     def _extract_http_error(self, error_data):
         # extract the error message from error_data

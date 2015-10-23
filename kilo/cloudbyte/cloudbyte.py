@@ -44,9 +44,10 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         1.2.0 - Add retype support
         1.2.1 - Update ig to None before delete volume
         1.2.2 - Setup error detection and minor bug fixes
+        1.2.3 - Minor Setup Error Detection improvements
     """
 
-    VERSION = '1.2.2'
+    VERSION = '1.2.3'
     volume_stats = {}
 
     # Global variables used during Setup Error Check
@@ -107,7 +108,11 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
         # Validity Check of Config params
         if config_params is not None:
-            self._validity_check(config_params, tsm_res)
+            result = self._validity_check(config_params, tsm_res)
+
+        if result:
+            LOG.info("CloudByte driver setup is successfull "
+                     "for version : '%s'.", CloudByteISCSIDriver.VERSION)
 
     def _fetch_params_from_config(self):
         """Throws an exception if config values are None or Empty."""
@@ -164,6 +169,8 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
                 reason=_("Cinder configuration has either of these values "
                          "[%s] invalid, w.r.t CloudByte Storage.") %
                 invalid_params)
+
+        return True
 
     def _extract_http_error(self, error_data):
         # Extract the error message from error_data
