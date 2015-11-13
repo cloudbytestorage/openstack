@@ -1302,6 +1302,8 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         # getting admin context
         ctxt = context.get_admin_context()
         vol_metadata = {"cb_volume_id": 'None'}
+        fqdn = self.get_node_fqdn()
+        vol_metadata = {"create_executed_at_node": fqdn}
 
         # Insert volume id in volume_metadata
         # This is a new record inserted by this plugin
@@ -1417,6 +1419,10 @@ class CloudByteISCSIDriver(SanISCSIDriver):
                  {'cb_vol': volume_name, 'stack_vol': volume.get('id')})
 
         return provider
+
+    def get_node_fqdn(self):
+        # fdqn = self.configuration.auth_host
+        return None
 
     def delete_volume(self, volume):
 

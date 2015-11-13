@@ -45,9 +45,10 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         1.2.1 - Update ig to None before delete volume
         1.2.2 - Setup error detection and minor bug fixes
         1.2.3 - Minor Setup Error Detection improvements
+        1.2.4 - Minor initiator group changes
     """
 
-    VERSION = '1.2.3'
+    VERSION = '1.2.4'
     volume_stats = {}
 
     # Global variables used during Setup Error Check
@@ -65,6 +66,8 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
             options.cloudbyte_update_volume_opts)
         self.configuration.append_config_values(
             options.cloudbyte_connection_opts)
+        self.configuration.append_config_values(
+            options.cloudbyte_initiator_group_opts)
         self.cb_use_chap = self.configuration.use_chap_auth
         self.get_volume_stats()
 
@@ -938,9 +941,11 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
         iscsi_initiator_data = self._api_request_for_cloudbyte(
             'listiSCSIInitiator', params)
-        # Create volume is done with ALL as ig
+
+        ig_name = self.configuration.cb_initiator_group_name
+
         ig_id = self._get_initiator_group_id_from_response(
-            iscsi_initiator_data, 'ALL')
+            iscsi_initiator_data, ig_name)
 
         LOG.debug("Updating iscsi service for CloudByte volume [%s].",
                   cb_volume_name)

@@ -95,8 +95,17 @@ cloudbyte_update_volume_opts = [
                 help="These values will be used for CloudByte storage's "
                      "updateFileSystem API call."), ]
 
+cloudbyte_initiator_group_opts = [
+    cfg.StrOpt('cb_initiator_group_name',
+               default='None',
+               help=('Initiator group name is assigned to a volume.'
+                     'Based on this name CloudByte storage verifies whether '
+                     'iscsi connection made to this volume was initiatied '
+                     'from the expected host.')), ]
+
 CONF = cfg.CONF
 CONF.register_opts(cloudbyte_add_qosgroup_opts)
 CONF.register_opts(cloudbyte_create_volume_opts)
 CONF.register_opts(cloudbyte_connection_opts)
 CONF.register_opts(cloudbyte_update_volume_opts)
+CONF.register_opts(cloudbyte_initiator_group_opts)
