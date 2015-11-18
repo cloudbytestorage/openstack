@@ -630,17 +630,28 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         # Filter required snapshot from list
         cb_snap_res = cb_snapshots_list.get('listDatasetSnapshotsResponse')
 
-        cb_snapshot = {}
-        if cb_snap_res is not None:
-            cb_snapshot = cb_snap_res.get('snapshot')
+        if cb_snap_res is None:
+            msg = _("Null response received from CloudByte's "
+                    "list storage snapshots w.r.t CloudByte "
+                    "volume [%s].") % volume_id
+            raise exception.VolumeBackendAPIException(data=msg)
+
+        cb_snapshots = cb_snap_res.get('snapshot')
 
         path = None
 
         # Filter snapshot path
-        for snap in cb_snapshot:
+        for snap in cb_snapshots:
             if snap['name'] == snapshot_name:
                 path = snap['path']
                 break
+
+        if path is None:
+            msg = (_("Snapshot path not found w.r.t "
+                     "Snapshot [%(snap_name)] and CloudByte "
+                     "volume [%(vol_id)].") %
+                   {'snap_name': snapshot_name, 'vol_id': volume_id})
+            raise exception.VolumeBackendAPIException(data=msg)
 
         return path
 
