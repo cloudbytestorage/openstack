@@ -1282,25 +1282,28 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
         if cb_volume_id is None:
             message = _("Provider information w.r.t CloudByte storage "
-                        "was not found for openstack "
+                        "was not found for Openstack "
                         "volume [%s].") % volume['id']
-            raise exception.VolumeDriverException(message)
+            raise exception.VolumeBackendAPIException(message)
 
         update_qos_group_params, update_file_system_params = (
             self._get_qos_by_volume_type(ctxt, new_type['id']))
 
         if update_qos_group_params:
-            listfilesysparams = {'id': cb_volume_id}
+            list_file_sys_params = {'id': cb_volume_id}
             response = self._api_request_for_cloudbyte(
-                'listFileSystem', listfilesysparams)
+                'listFileSystem', list_file_sys_params)
 
             response = response['listFilesystemResponse']
             cb_volume_list = response['filesystem']
             cb_volume = cb_volume_list[0]
 
             if not cb_volume:
-                msg = ("Volume [%s] was not found at "
-                       "CloudByte storage.") % cb_volume_id
+                msg = (_("Volume [%(cb_vol)s] was not found at "
+                         "CloudByte storage corresponding to OpenStack "
+                         "volume [%(ops_vol)s].") %
+                       {'cb_vol': cb_volume_id, 'ops_vol': volume['id']})
+
                 raise exception.VolumeBackendAPIException(data=msg)
 
             update_qos_group_params['id'] = cb_volume.get('groupid')
@@ -1313,7 +1316,8 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
             self._api_request_for_cloudbyte(
                 'updateFileSystem', update_file_system_params)
 
-        LOG.info(_LI("Retype was successful for CloudByte volume [%s]."),
-                 cb_volume_id)
+        LOG.info(_LI("Successfully updated CloudByte volume [%(cb_vol)s] "
+                     "corresponding to OpenStack volume [%(ops_vol)s]."),
+                 {'cb_vol': cb_volume_id, 'ops_vol': volume['id']})
 
         return True
