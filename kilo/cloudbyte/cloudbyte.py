@@ -46,9 +46,10 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         1.2.2 - Setup error detection and minor bug fixes
         1.2.3 - Minor Setup Error Detection improvements
         1.2.4 - Minor initiator group changes
+        1.2.5 - Fixed a bug w.r.t create snapshot path as None
     """
 
-    VERSION = '1.2.4'
+    VERSION = '1.2.5'
     volume_stats = {}
 
     # Global variables used during Setup Error Check
