@@ -35,6 +35,7 @@ LOG = logging.getLogger(__name__)
 
 
 class CloudByteISCSIDriver(san.SanISCSIDriver):
+
     """CloudByte ISCSI Driver.
 
     Version history:
@@ -334,7 +335,7 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
         if tsms is None:
             msg = (_("TSM [%(tsm)s] was not found in CloudByte storage "
-                   "for account [%(account)s].") %
+                     "for account [%(account)s].") %
                    {'tsm': tsm_name, 'account': account_name})
             raise exception.VolumeBackendAPIException(data=msg)
 
@@ -983,7 +984,7 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
             cb_volumes, cb_volume_name, chap_info)
 
         LOG.info(_LI("Successfully created a CloudByte volume [%(cb_vol)s] "
-                 "w.r.t OpenStack volume [%(stack_vol)s]."),
+                     "w.r.t OpenStack volume [%(stack_vol)s]."),
                  {'cb_vol': cb_volume_name, 'stack_vol': volume.get('id')})
 
         return provider
@@ -1032,11 +1033,11 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
             else:
                 LOG.error(_LE("CloudByte does not have a volume corresponding "
-                          "to OpenStack volume [%s]."), source_volume_id)
+                              "to OpenStack volume [%s]."), source_volume_id)
 
         else:
             LOG.error(_LE("CloudByte volume information not available for"
-                      " OpenStack volume [%s]."), source_volume_id)
+                          " OpenStack volume [%s]."), source_volume_id)
 
     def create_snapshot(self, snapshot):
         """Creates a snapshot at CloudByte."""
@@ -1224,7 +1225,7 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
         else:
             LOG.error(_LE("CloudByte snapshot information is not available"
-                      " for OpenStack volume [%s]."), source_volume_id)
+                          " for OpenStack volume [%s]."), source_volume_id)
 
     def extend_volume(self, volume, new_size):
 
@@ -1282,7 +1283,7 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
         if cb_volume_id is None:
             message = _("Provider information w.r.t CloudByte storage "
-                        "was not found for Openstack "
+                        "was not found for OpenStack "
                         "volume [%s].") % volume['id']
             raise exception.VolumeBackendAPIException(message)
 
