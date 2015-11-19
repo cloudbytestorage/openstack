@@ -1,0 +1,62 @@
+
+[keystone_authtoken]
+signing_dir = /var/cache/cinder
+cafile = /opt/stack/data/ca-bundle.pem
+auth_uri = http://172.16.50.10:5000
+project_domain_id = default
+project_name = service
+user_domain_id = default
+password = test123
+username = cinder
+auth_url = http://172.16.50.10:35357
+auth_plugin = password
+
+[DEFAULT]
+glance_api_servers = http://172.16.50.10:9292
+osapi_volume_workers = 2
+logging_context_format_string = %(asctime)s.%(msecs)03d %(levelname)s %(name)s [%(request_id)s %(project_name)s] %(resource)s%(message)s
+rpc_backend = rabbit
+use_syslog = True
+default_volume_type = gold
+enabled_backends = cb-gold
+os_region_name = RegionOne
+enable_v1_api = true
+periodic_interval = 60
+state_path = /opt/stack/data/cinder
+osapi_volume_extension = cinder.api.contrib.standard_extensions
+rootwrap_config = /etc/cinder/rootwrap.conf
+api_paste_config = /etc/cinder/api-paste.ini
+iscsi_helper = tgtadm
+verbose = True
+debug = True
+auth_strategy = keystone
+nova_catalog_admin_info = compute:nova:adminURL
+nova_catalog_info = compute:nova:publicURL
+
+[database]
+connection = mysql://root:test123@127.0.0.1/cinder?charset=utf8
+
+[oslo_concurrency]
+lock_path = /opt/stack/data/cinder
+
+[cb-gold]
+volume_driver = cinder.volume.drivers.cloudbyte.cloudbyte.CloudByteISCSIDriver
+volume_backend_name = cb-gold
+san_ip = 172.16.51.32
+san_login = admin
+san_password = na
+cb_tsm_name = VSM2
+cb_account_name = OPENSTACK_ACC
+cb_apikey = 2qKU31MlwYAp3ElxWfTbqToLfNIqMB-ezZR7Us3SO0Q9Q3LVHiefkm2n6-tDO0rJkH6kaQSyefrVnwqB2YlhkQ
+cb_confirm_volume_create_retries = 10
+cb_confirm_volume_create_retry_interval = 5
+cb_confirm_volume_delete_retries = 10
+cb_confirm_volume_delete_retry_interval = 5
+cb_add_qosgroup = latency:15,graceallowed:false,iopscontrol:true,memlimit:0,tpcontrol:false,throughput:0,iops:50,networkspeed:0
+cb_create_volume = compression:off,deduplication:off,blocklength:512B,sync:always,protocoltype:ISCSI,recordsize:4k
+cb_initiator_group_name = 'ALL'
+
+[oslo_messaging_rabbit]
+rabbit_userid = stackrabbit
+rabbit_password = test123
+rabbit_hosts = 172.16.50.10
