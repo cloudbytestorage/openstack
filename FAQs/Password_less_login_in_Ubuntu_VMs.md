@@ -2,7 +2,7 @@
 
 * create a ssh-key pair in access & security in the fuel master node (where you would have logged in as a specific user)
 
-* How to create a key pair ? Solution: ssh-keygen -t rsa -f cloud.key
+* How to create a key pair ? Solution: "ssh-keygen -t rsa -f cloud.key"
 
 * This will create e.g. cloud.key & cloud.key.pub
 
@@ -10,5 +10,6 @@
 ​
 * Launch a new Instance associating this public key
 
-* In the fuel master node terminal, login to Ubuntu VM using the private key 
-      ssh -i cloud.key ubuntu@<instance_ip>
+* In the fuel master node terminal, login to Ubuntu VM using the private key
+      
+      "ssh -i cloud.key ubuntu@instance_ip"
