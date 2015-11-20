@@ -1,0 +1,123 @@
+
+[DEFAULT]
+debug = True
+log_file = tempest.log
+use_stderr = False
+use_syslog = True
+
+[oslo_concurrency]
+lock_path = /opt/stack/data/tempest
+
+[compute]
+fixed_network_name = private
+ssh_connect_method = fixed
+flavor_ref_alt = 84
+flavor_ref = 42
+image_alt_ssh_user = cirros
+image_ref_alt = d6f14309-3c1c-4b35-b5d6-517b1127a1df
+image_ssh_user = cirros
+image_ref = d6f14309-3c1c-4b35-b5d6-517b1127a1df
+ssh_timeout = 196
+ip_version_for_ssh = 4
+network_for_ssh = private
+ssh_user = cirros
+build_timeout = 196
+
+[volume]
+build_timeout = 196
+storage_protocol = iSCSI
+vendor_name = CloudByte
+ATTACH_ENCRYPTED_VOLUME_AVAILABLE = False
+backend1_name = cb-gold
+backend2_name = cb-silver
+
+[boto]
+ssh_user = cirros
+instance_type = m1.nano
+aki_manifest = cirros-0.3.4-x86_64-vmlinuz.manifest.xml
+ami_manifest = cirros-0.3.4-x86_64-blank.img.manifest.xml
+ari_manifest = cirros-0.3.4-x86_64-initrd.manifest.xml
+s3_materials_path = /home/kilo/devstack/files/images/s3-materials/cirros-0.3.4
+s3_url = http://172.16.50.10:3333
+ec2_url = http://172.16.50.10:8773/
+http_socket_timeout = 30
+build_timeout = 196
+
+[identity]
+auth_version = v2
+admin_domain_name = Default
+admin_tenant_id = 1c296b6109234bc6b7d9c82086c473b4
+admin_tenant_name = admin
+admin_password = test123
+admin_username = admin
+alt_tenant_name = alt_demo
+alt_password = test123
+alt_username = alt_demo
+tenant_name = demo
+password = test123
+username = demo
+uri_v3 = http://172.16.50.10:5000/v3
+uri = http://172.16.50.10:5000/v2.0/
+
+[auth]
+tempest_roles = Member
+allow_tenant_isolation = True
+
+[compute-feature-enabled]
+preserve_ports = True
+api_extensions = NMN, OS-DCF, OS-EXT-AZ, OS-EXT-IMG-SIZE, OS-EXT-IPS, OS-EXT-IPS-MAC, OS-EXT-SRV-ATTR, OS-EXT-STS, OS-EXT-VIF-NET, OS-FLV-DISABLED, OS-FLV-EXT-DATA, OS-SCH-HNT, OS-SRV-USG, os-admin-actions, os-agents, os-aggregates, os-assisted-volume-snapshots, os-attach-interfaces, os-availability-zone, os-baremetal-ext-status, os-baremetal-nodes, os-block-device-mapping-v2-boot, os-cell-capacities, os-cells, os-certificates, os-cloudpipe, os-cloudpipe-update, os-config-drive, os-console-auth-tokens, os-console-output, os-consoles, os-create-server-ext, os-deferred-delete, os-evacuate, os-extended-evacuate-find-host, os-extended-floating-ips, os-extended-hypervisors, os-extended-networks, os-extended-quotas, os-extended-rescue-with-image, os-extended-services, os-extended-services-delete, os-extended-volumes, os-fixed-ips, os-flavor-access, os-flavor-extra-specs, os-flavor-manage, os-flavor-rxtx, os-flavor-swap, os-floating-ip-dns, os-floating-ip-pools, os-floating-ips, os-floating-ips-bulk, os-fping, os-hide-server-addresses, os-hosts, os-hypervisor-status, os-hypervisors, os-instance-actions, os-instance_usage_audit_log, os-keypairs, os-migrations, os-multiple-create, os-networks, os-networks-associate, os-preserve-ephemeral-rebuild, os-quota-class-sets, os-quota-sets, os-rescue, os-security-group-default-rules, os-security-groups, os-server-diagnostics, os-server-external-events, os-server-group-quotas, os-server-groups, os-server-list-multi-status, os-server-password, os-server-sort-keys, os-server-start-stop, os-services, os-shelve, os-simple-tenant-usage, os-tenant-networks, os-used-limits, os-used-limits-for-admin, os-user-data, os-user-quotas, os-virtual-interfaces, os-volume-attachment-update, os-volumes
+block_migration_for_live_migration = False
+change_password = False
+live_migration = False
+resize = True
+
+[network]
+default_network = 10.0.0.0/24
+public_router_id = 
+public_network_id = 
+tenant_networks_reachable = false
+api_version = 2.0
+
+[network-feature-enabled]
+api_extensions = agent, allowed-address-pairs, binding, dhcp_agent_scheduler, dvr, ext-gw-mode, external-net, extra_dhcp_opt, extraroute, fwaas, fwaasrouterinsertion, l3-ha, l3_agent_scheduler, lbaas, lbaas_agent_scheduler, metering, multi-provider, net-mtu, provider, quotas, router, security-group, service-type, subnet_allocation, vpnaas
+ipv6_subnet_attributes = True
+ipv6 = True
+
+[scenario]
+large_ops_number = 0
+img_file = cirros-0.3.4-x86_64-disk.img
+aki_img_file = cirros-0.3.4-x86_64-vmlinuz
+ari_img_file = cirros-0.3.4-x86_64-initrd
+ami_img_file = cirros-0.3.4-x86_64-blank.img
+img_dir = /home/kilo/devstack/files/images/cirros-0.3.4-x86_64-uec
+
+[telemetry]
+too_slow_to_test = False
+
+[telemetry-feature-enabled]
+events = True
+
+[object-storage-feature-enabled]
+discoverable_apis = 
+
+[volume-feature-enabled]
+multi_backend = true
+backup = False
+api_extensions = OS-SCH-HNT, backups, cgsnapshots, consistencygroups, encryption, os-admin-actions, os-availability-zone, os-extended-services, os-extended-snapshot-attributes, os-hosts, os-image-create, os-quota-class-sets, os-quota-sets, os-services, os-snapshot-actions, os-types-extra-specs, os-types-manage, os-used-limits, os-vol-host-attr, os-vol-image-meta, os-vol-mig-status-attr, os-vol-tenant-attr, os-volume-actions, os-volume-encryption-metadata, os-volume-manage, os-volume-replication, os-volume-transfer, os-volume-type-access, os-volume-unmanage, qos-specs, scheduler-stats
+
+[dashboard]
+login_url = http://172.16.50.10/auth/login/
+dashboard_url = http://172.16.50.10/
+
+[cli]
+cli_dir = /usr/local/bin
+
+[service_available]
+neutron = False
+heat = False
+ceilometer = False
+swift = False
+cinder = True
+nova = True
+glance = True
+horizon = True
