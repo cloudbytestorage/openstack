@@ -16,10 +16,11 @@ Enable ping and SSH with euca2ools:
 
 $ euca-authorize -P icmp -t -1:-1 -s 0.0.0.0/0 default
 $ euca-authorize -P tcp -p 22 -s 0.0.0.0/0 default         
+
 If you have run these commands and still cannot ping or SSH your instances, check the number of running dnsmasq processes, there should be two. If not, kill the processes and restart the service with these commands: command:
 
-# killall dnsmasq
-# service nova-network restart
+- killall dnsmasq
+- service nova-network restart
 
 Enable RDP for the above things to work:
 
