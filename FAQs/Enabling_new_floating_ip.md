@@ -3,6 +3,7 @@
 1. nova-manage floating create --pool POOL_NAME --ip_range
 
 2. Now go to openstack horizon and do the following:
+
 - Go to Access & Security -> Floating IPs -> Allocate IP to Project
 
 ![alt text](https://github.com/CloudByteStorages/openstack/blob/master/FAQs/images/image6.jpg)
