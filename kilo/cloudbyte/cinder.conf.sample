@@ -17,8 +17,8 @@ osapi_volume_workers = 2
 logging_context_format_string = %(asctime)s.%(msecs)03d %(levelname)s %(name)s [%(request_id)s %(project_name)s] %(resource)s%(message)s
 rpc_backend = rabbit
 use_syslog = True
-default_volume_type = gold
-enabled_backends = cb-gold
+default_volume_type = gold, silver
+enabled_backends = cb-gold, cb-silver
 os_region_name = RegionOne
 enable_v1_api = true
 periodic_interval = 60
@@ -45,6 +45,23 @@ volume_backend_name = cb-gold
 san_ip = 172.16.51.32
 san_login = admin
 san_password = na
+cb_tsm_name = VSM1
+cb_account_name = OPENSTACK_ACC
+cb_apikey = 2qKU31MlwYAp3ElxWfTbqToLfNIqMB-ezZR7Us3SO0Q9Q3LVHiefkm2n6-tDO0rJkH6kaQSyefrVnwqB2YlhkQ
+cb_confirm_volume_create_retries = 10
+cb_confirm_volume_create_retry_interval = 5
+cb_confirm_volume_delete_retries = 10
+cb_confirm_volume_delete_retry_interval = 5
+cb_add_qosgroup = latency:15,graceallowed:false,iopscontrol:true,memlimit:0,tpcontrol:false,throughput:0,iops:50,networkspeed:0
+cb_create_volume = compression:off,deduplication:off,blocklength:512B,sync:always,protocoltype:ISCSI,recordsize:4k
+cb_initiator_group_name = ALL
+
+[cb-silver]
+volume_driver = cinder.volume.drivers.cloudbyte.cloudbyte.CloudByteISCSIDriver
+volume_backend_name = cb-silver
+san_ip = 172.16.51.32
+san_login = admin
+san_password = na
 cb_tsm_name = VSM2
 cb_account_name = OPENSTACK_ACC
 cb_apikey = 2qKU31MlwYAp3ElxWfTbqToLfNIqMB-ezZR7Us3SO0Q9Q3LVHiefkm2n6-tDO0rJkH6kaQSyefrVnwqB2YlhkQ
@@ -54,7 +71,7 @@ cb_confirm_volume_delete_retries = 10
 cb_confirm_volume_delete_retry_interval = 5
 cb_add_qosgroup = latency:15,graceallowed:false,iopscontrol:true,memlimit:0,tpcontrol:false,throughput:0,iops:50,networkspeed:0
 cb_create_volume = compression:off,deduplication:off,blocklength:512B,sync:always,protocoltype:ISCSI,recordsize:4k
-cb_initiator_group_name = 'ALL'
+cb_initiator_group_name = ALL
 
 [oslo_messaging_rabbit]
 rabbit_userid = stackrabbit
