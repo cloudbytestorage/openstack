@@ -25,11 +25,11 @@ build_timeout = 196
 
 [volume]
 build_timeout = 196
-storage_protocol = iSCSI
-vendor_name = CloudByte
-ATTACH_ENCRYPTED_VOLUME_AVAILABLE = False
-backend1_name = cb-gold
-backend2_name = cb-silver
+storage_protocol = iSCSI // Need to be added
+vendor_name = CloudByte // Need to be added
+ATTACH_ENCRYPTED_VOLUME_AVAILABLE = False // Need to be added
+backend1_name = cb-gold // Need to be added
+backend2_name = cb-silver // Need to be added
 
 [boto]
 ssh_user = cirros
@@ -101,7 +101,7 @@ events = True
 discoverable_apis = 
 
 [volume-feature-enabled]
-multi_backend = true
+multi_backend = true // Need to be added
 backup = False
 api_extensions = OS-SCH-HNT, backups, cgsnapshots, consistencygroups, encryption, os-admin-actions, os-availability-zone, os-extended-services, os-extended-snapshot-attributes, os-hosts, os-image-create, os-quota-class-sets, os-quota-sets, os-services, os-snapshot-actions, os-types-extra-specs, os-types-manage, os-used-limits, os-vol-host-attr, os-vol-image-meta, os-vol-mig-status-attr, os-vol-tenant-attr, os-volume-actions, os-volume-encryption-metadata, os-volume-manage, os-volume-replication, os-volume-transfer, os-volume-type-access, os-volume-unmanage, qos-specs, scheduler-stats
 
