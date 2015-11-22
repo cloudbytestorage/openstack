@@ -1,5 +1,5 @@
-
-
+- Log Details
+```
 Nov 12 12:44:33 node-174 cinder-volume Volume 7a59c80e-740a-4874-94d5-84b5851b66f5: 
     being created as image with specification: 
     {'status': u'creating',
