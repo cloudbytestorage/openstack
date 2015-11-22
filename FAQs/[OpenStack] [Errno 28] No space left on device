@@ -1,6 +1,6 @@
-- Log Details
-- 
-```
+Log Details:
+-------------------
+
 cinder-volume Volume 7a59c80e-740a-4874-94d5-84b5851b66f5: being created as image with specification: 
     {'status': u'creating',
     'image_location': (u'file:///nfsmount/283c991d-89df-4a70-89c6-1b4474cc067f', None),
@@ -43,8 +43,8 @@ cinder-volume Failed to copy image 283c991d-89df-4a70-89c6-1b4474cc067f to
 2015-11-12 12:47:29.308 85317 TRACE cinder.volume.manager
 ...
 
-Nov 12 12:47:29 node-174 cinder-volume Volume 7a59c80e-740a-4874-94d5-84b5851b66f5: create failed
-Nov 12 12:47:29 node-174 cinder-volume Flow 'volume_create_manager' (5ecb731d-b20b-41c4-b9cf-5d746a8be73c) transitioned into state 'REVERTED' from state 'RUNNING'
+cinder-volume Volume 7a59c80e-740a-4874-94d5-84b5851b66f5: create failed
+Flow 'volume_create_manager' (5ecb731d-b20b-41c4-b9cf-5d746a8be73c) transitioned into state 'REVERTED' from state 'RUNNING'
 Nov 12 12:47:29 node-174 cinder-volume Exception during message handling: 
     Failed to copy image to volume: [Errno 28] No space left on device
 2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher Traceback (most recent call last):
@@ -62,22 +62,29 @@ Nov 12 12:47:29 node-174 cinder-volume Exception during message handling:
         flow_engine.run()
     File "/usr/lib/python2.7/dist-packages/taskflow/engines/action_engine/engine.py", line 98, in run
         for _state in self.run_iter():
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher   File "/usr/lib/python2.7/dist-packages/taskflow/engines/action_engine/engine.py", line 155, in run_iter
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher     misc.Failure.reraise_if_any(failures.values())
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher   File "/usr/lib/python2.7/dist-packages/taskflow/utils/misc.py", line 670, in reraise_if_any
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher     failures[0].reraise()
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher   File "/usr/lib/python2.7/dist-packages/taskflow/utils/misc.py", line 677, in reraise
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher     six.reraise(*self._exc_info)
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher   File "/usr/lib/python2.7/dist-packages/taskflow/engines/action_engine/executor.py", line 35, in _execute_task
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher     result = task.execute(**arguments)
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher   File "/usr/lib/python2.7/dist-packages/cinder/volume/flows/manager/create_volume.py", line 638, in execute
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher     **volume_spec)
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher   File "/usr/lib/python2.7/dist-packages/cinder/volume/flows/manager/create_volume.py", line 590, in _create_from_image
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher     image_id, image_location, image_service)
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher   File "/usr/lib/python2.7/dist-packages/cinder/volume/flows/manager/create_volume.py", line 504, in _copy_image_to_volume
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher     raise exception.ImageCopyFailure(reason=ex)
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher ImageCopyFailure: Failed to copy image to volume: [Errno 28] No space left on device
-2015-11-12 12:47:29.364 85317 TRACE oslo.messaging.rpc.dispatcher
-Nov 12 12:47:53 node-174 cinder-volume Updating volume status
-Nov 12 12:47:53 node-174 cinder-volume Updating volume replication status.
-```
+    File "/usr/lib/python2.7/dist-packages/taskflow/engines/action_engine/engine.py", line 155, in run_iter
+        misc.Failure.reraise_if_any(failures.values())
+    File "/usr/lib/python2.7/dist-packages/taskflow/utils/misc.py", line 670, in reraise_if_any
+        failures[0].reraise()
+    File "/usr/lib/python2.7/dist-packages/taskflow/utils/misc.py", line 677, in reraise
+        six.reraise(*self._exc_info)
+    File "/usr/lib/python2.7/dist-packages/taskflow/engines/action_engine/executor.py", line 35, in _execute_task
+        result = task.execute(**arguments)
+    File "/usr/lib/python2.7/dist-packages/cinder/volume/flows/manager/create_volume.py", line 638, in execute
+        **volume_spec)
+    File "/usr/lib/python2.7/dist-packages/cinder/volume/flows/manager/create_volume.py", line 590, in _create_from_image
+        image_id, image_location, image_service)
+    File "/usr/lib/python2.7/dist-packages/cinder/volume/flows/manager/create_volume.py", line 504, in _copy_image_to_volume
+        raise exception.ImageCopyFailure(reason=ex)
+
+ImageCopyFailure: Failed to copy image to volume: [Errno 28] No space left on device
+
+Analysis:
+--------------------
+We noticed that /dev/mapper/os-root of cinder-volume node was eating up the entire space.
+Hence, it will be advisable to set a location which has enough space e.g. 40 GB to 50 GB 
+    (assuming all the images will be within this capacity)
+We can set the permissions of the location to "cinder" user & set it at cinder.conf's "image_conversion_dir" key.
+
+
+
