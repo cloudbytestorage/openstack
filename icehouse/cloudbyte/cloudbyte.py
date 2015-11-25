@@ -48,10 +48,11 @@ class CloudByteISCSIDriver(SanISCSIDriver):
               - Update ig to None before delete volume
               - Delete wait logic
         1.2.2 - Minor Setup Error Detection improvements
+        1.2.3 - Use name instead of initiatorgroup from API response
     """
 
     # Version of this Cinder driver
-    VERSION = '1.2.2'
+    VERSION = '1.2.3'
 
     # Params used for CB REST calls.
     # These are provided from Cinder API layer
@@ -834,7 +835,7 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         # It is expected to have this initiator group name available
         # in CloudByte storage
         for ig in ig_list:
-            if ig.get('initiatorgroup') == ig_filter:
+            if ig.get('name') == ig_filter:
                 LOG.debug("Initiator group [%(ig)s] "
                           "will be set against the CloudByte storage volume.",
                           {'ig': ig_filter})
