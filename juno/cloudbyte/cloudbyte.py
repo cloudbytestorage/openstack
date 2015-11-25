@@ -50,6 +50,7 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         1.2.3 - Setup Error Detection
         1.2.4 - Update ig to None before delete volume
         1.2.5 - Minor Setup Error Detection improvements
+        1.2.6 - Use name instead of initiatorgroup from API response
     """
     # Version of this Cinder driver
     VERSION = '1.2.5'
@@ -935,7 +936,7 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         # It is expected to have this initiator group name available
         # in CloudByte storage
         for ig in ig_list:
-            if ig.get('initiatorgroup') == filter:
+            if ig.get('name') == filter:
                 LOG.debug("Initiator group [%(ig)s] "
                           "will be set against the CloudByte storage volume.",
                           {'ig': filter})
