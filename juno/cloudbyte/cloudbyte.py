@@ -53,7 +53,7 @@ class CloudByteISCSIDriver(SanISCSIDriver):
         1.2.6 - Use name instead of initiatorgroup from API response
     """
     # Version of this Cinder driver
-    VERSION = '1.2.5'
+    VERSION = '1.2.6'
 
     # Params used for CB REST calls.
     # These are used by Cinder & not necessarily by CB Rest APIs
