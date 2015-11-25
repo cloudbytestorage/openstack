@@ -555,7 +555,7 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
         return model_update
 
-    def _get_initiator_group_id_from_response(self, data, filter):
+    def _get_initiator_group_id_from_response(self, data, ig_filter):
         """Find iSCSI initiator group id."""
 
         ig_list_res = data.get('listInitiatorsResponse')
@@ -574,7 +574,7 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         ig_id = None
 
         for ig in ig_list:
-            if ig.get('name') == filter:
+            if ig.get('name') == ig_filter:
                 LOG.debug("Initiator group [%(ig)s] "
                           "will be set against the CloudByte storage volume.",
                           {'ig': ig_filter})
