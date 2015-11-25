@@ -48,9 +48,10 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         1.2.3 - Minor Setup Error Detection improvements
         1.2.4 - Minor initiator group changes
         1.2.5 - Fixed a bug w.r.t create snapshot path as None
+        1.2.6 - Fixed a bug w.r.t initiator group selection
     """
 
-    VERSION = '1.2.5'
+    VERSION = '1.2.6'
     volume_stats = {}
 
     # Global variables used during Setup Error Check
@@ -573,7 +574,7 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         ig_id = None
 
         for ig in ig_list:
-            if ig.get('initiatorgroup') == filter:
+            if ig.get('name') == filter:
                 ig_id = ig['id']
                 break
 
