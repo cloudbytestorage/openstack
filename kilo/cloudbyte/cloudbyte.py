@@ -575,8 +575,16 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
         for ig in ig_list:
             if ig.get('name') == filter:
+                LOG.debug("Initiator group [%(ig)s] "
+                          "will be set against the CloudByte storage volume.",
+                          {'ig': ig_filter})
                 ig_id = ig['id']
                 break
+
+        if ig_id is None:
+            raise exception.VolumeBackendAPIException(
+                "Initiator group [%s] not found at CloudByte "
+                "storage." % ig_filter)
 
         return ig_id
 
