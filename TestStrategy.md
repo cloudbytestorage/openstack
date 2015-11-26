@@ -50,3 +50,10 @@
 - create snapshot @ os -> delete from ec -> create clone from os & verify os logs
 - create snapshot @ os -> create clone @ os -> delete clone @ ec -> delete clone @ os & verify os logs
 - create snapshot @ os -> create clone @ os -> delete clone & snapshot @ ec -> delete clone @ os & verify os logs
+- delete VSM @ ec -> verify logs @ os
+- delete VSM @ ec -> create volume @ os
+- delete VSM @ ec -> delete volume @ os
+- delete VSM @ ec -> create snapshot @ os
+- delete VSM @ ec -> delete snapshot @ os
+- delete VSM @ ec -> create clone @ os
+- delete VSM @ ec -> delete clone @ os
