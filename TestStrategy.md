@@ -1,6 +1,7 @@
 
 ### Positive Test Scenarios
 - check the cinder-volume logs for the start timestamp (st)
+- set logging to INFO mode @ cinder.conf
 - create volume @ openstack (os) -- verify @ os & elasticenter (ec)
 - delete volume @ os -- verify @ os & ec
 - create volume @ os -- create snapshot @ os -- verify @ os & ec
@@ -36,12 +37,17 @@
   - verify if the backends available capacity matches the corresponding VSMs'.
   - check if there is a suitable rc or cli
 - check the logs for any errors or warnings after the st
+- check if the INFO logs are supportable & debuggable
+- change the log level to DEBUG & re-run above cases
+- check if DEBUG logs are proper
   
 
 ### Positive Collection Based Test Scenarios
 - 
 
 ### Negative Test Scenarios
+- check the cinder-volume logs for the start timestamp (st)
+- set logging to INFO mode @ cinder.conf
 - shutdown the EC network & verify os, logs
 - shutdown EC & verify os, logs
 - create volume @ os -- delete from ec -- update IOPS @ os
