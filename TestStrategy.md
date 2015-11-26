@@ -29,4 +29,3 @@
 ### Negative Test Scenarios
 - shutdown the EC network & verify os, logs
 - shutdown EC & verify os, logs
-- 
