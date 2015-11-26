@@ -14,7 +14,7 @@ CloudByte openstack cinder driver information.
 
 ### running tempest
 - tox -eall -- volume --concurrency=1
-- tox -eall -- <tempest-test> --concurrency=1
+tox -eall -- <tempest-test> --concurrency=1
 
 ### code contribution 
 email: openstack-dev@cloudbyte.com
