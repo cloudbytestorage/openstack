@@ -16,11 +16,17 @@
   - increase size
   - decrease size
 - extend clone @ os & verify @ os & ec & rc
-- check the logs for any errors or wranings after the st
+  - increase size
+  - decrease size
+- check the scheduler logs & verify if the backends available capacity matches the corresponding VSMs'.
+  - check if there is a suitable rc or cli
+- check the logs for any errors or warnings after the st
   
 
 ### Positive Collection Based Test Scenarios
 - 
 
 ### Negative Test Scenarios
+- shutdown the EC network & verify os, logs
+- shutdown EC & verify os, logs
 - 
