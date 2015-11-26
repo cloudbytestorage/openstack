@@ -5,11 +5,19 @@ CloudByte openstack cinder driver information.
 
 |   KILO    |   ELASTICENTER  | TEMPEST |  QA  |
 | :-------: | :-------------: | :-----: | :---:|
-|           |    1.4.0.620    |   YES   |      |
+|   1.2.6   |    1.4.0.620    |   YES   |      |
 |           |                 |         |      |
 |           |                 |         |      |
 |           |                 |         |      |
 |           |                 |         |      |
+
+### test matrix
+```
+  KILO        ELASTICENTER      TEMPEST     QA
+  ----        ------------      -------     ---
+  1.2.6         1.4.0.620         YES       
+  
+```
 
 
 ### running tempest
