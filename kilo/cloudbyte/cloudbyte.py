@@ -172,11 +172,11 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
         if not found:
             raise exception.InvalidInput(
-                reason=_("Cinder configuration has either of these values "
-                         "[%s] invalid, w.r.t CloudByte Storage.") %
+                reason=_("Invalid cinder configuration found for either of "
+                         "these values [%s], w.r.t CloudByte Storage.") %
                 invalid_params)
 
-        return True
+        return found
 
     def _extract_http_error(self, error_data):
         # Extract the error message from error_data
