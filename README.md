@@ -19,7 +19,11 @@ tox -eall -- <tempest-test> --concurrency=1
 ```
 
 ### code contribution 
+```
 email: openstack-dev@cloudbyte.com
+```
 
 ### support
+```
 email: cb-support@cloudbyte.com
+```
