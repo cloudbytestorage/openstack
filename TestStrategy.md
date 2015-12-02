@@ -50,6 +50,8 @@
 - set logging to INFO mode @ cinder.conf
 - shutdown the EC network & verify os, logs
 - shutdown EC & verify os, logs
+- reduce the no of attempts & interval for create volume @ conf -- verify logs -- delete volume
+- reduce the no of attempts & interval for delete volume @ conf -- verify logs -- retry delete
 - create volume @ os -- delete from ec -- update IOPS @ os
 - create volume @ os -- delete from ec -- delete from os @ verify os logs
 - create snapshot @ os -- delete from ec -- delete from os & verify os logs
