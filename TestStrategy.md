@@ -67,3 +67,7 @@
 - delete VSM @ ec -- delete snapshot @ os
 - delete VSM @ ec -- create clone @ os
 - delete VSM @ ec -- delete clone @ os
+- remove all volumes, clones & snapshots @ os 
+  - remove VSM @ ec. 
+  - verify cinder-volume service should be in a running state.
+  - verify cinder-volume service should be in a running state even after cinder-volume restart.
