@@ -49,9 +49,10 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         1.2.4 - Minor initiator group changes
         1.2.5 - Fixed a bug w.r.t create snapshot path as None
         1.2.6 - Fixed a bug w.r.t initiator group selection
+        1.2.7 - Fixed snapshot path error logging
     """
 
-    VERSION = '1.2.6'
+    VERSION = '1.2.7'
     volume_stats = {}
 
     # Global variables used during Setup Error Check
@@ -659,8 +660,8 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
         if path is None:
             msg = (_("Snapshot path not found w.r.t "
-                     "Snapshot [%(snap_name)] and CloudByte "
-                     "volume [%(vol_id)].") %
+                     "snapshot [%(snap_name)s] and CloudByte "
+                     "volume [%(vol_id)s].") %
                    {'snap_name': snapshot_name, 'vol_id': volume_id})
             raise exception.VolumeBackendAPIException(data=msg)
 
