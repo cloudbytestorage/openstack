@@ -39,7 +39,7 @@
   - verify if the backends available capacity matches the corresponding VSMs'.
   - check if there is a suitable rc or cli
 - check the logs for any errors or warnings after the st
-- check if the INFO logs are supportable & debuggable
+- check if the INFO, ERROR, DEBUG, WARNING logs are supportable & debuggable
 - change the log level to DEBUG & re-run above cases
 - check if DEBUG logs are proper
   
