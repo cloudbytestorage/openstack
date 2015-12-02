@@ -3,7 +3,7 @@
 - check the cinder-volume logs for the start timestamp (st)
 - set logging to INFO mode @ cinder.conf
 - verifying logs is also a part of test
-  - if logs are not proper or invalid bugs should be raised
+  - if logs are not proper or are invalid then bugs should be raised
 - create volume @ openstack (os) -- verify @ os & elasticenter (ec)
 - delete volume @ os -- verify @ os & ec
 - create volume @ os -- create snapshot @ os -- verify @ os & ec
