@@ -1,3 +1,4 @@
+#### IMP : USE HORIZON THEN OPENSTACK CLI FOR PERFORMING THE TESTS BELOW
 
 ### Positive Test Scenarios
 - check the cinder-volume logs for the start timestamp (st)
