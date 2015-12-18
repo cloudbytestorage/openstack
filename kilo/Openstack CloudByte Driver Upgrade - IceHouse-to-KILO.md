@@ -1,6 +1,6 @@
 #### MYSQL QUERIES FOR SYNCING ICEHOUSE CREATED VOLUMES TO KILO:
 
-Following are the queries that need to be run after the upgarde of OpenStack nodes from Icehouse to Kilo:
+Following are the queries that need to be run in cinder database after the upgrade of OpenStack Controller nodes from Icehouse to Kilo:
 
 - UPDATE volumes INNER JOIN volume_metadata ON (volumes.id = volume_metadata.volume_id and volume_metadata.key = "cb_volume_id" and volume_metadata.deleted = 0) SET volumes.provider_id = volume_metadata.value;
 
