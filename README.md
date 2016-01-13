@@ -8,6 +8,7 @@ Information related to CloudByte openstack cinder driver
   ----           ------------      -------     ---     -----    ---   ---
   MASTER         1.4.0.547         YES                          YES   YES
   KILO 1.2.7     1.4.0.620         YES                                YES
+  KILO 1.2.8     1.4.0.620                                         
   
 ```
 
