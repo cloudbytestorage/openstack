@@ -1,0 +1,74 @@
+[DEFAULT]
+rootwrap_config = /etc/cinder/rootwrap.conf
+api_paste_confg = /etc/cinder/api-paste.ini
+iscsi_helper = tgtadm
+volume_name_template = volume-%s
+volume_group = cinder-volumes
+verbose = True
+auth_strategy = keystone
+state_path = /var/lib/cinder
+lock_path = /var/lock/cinder
+volumes_dir = /var/lib/cinder/volumes
+rpc_backend = cinder.openstack.common.rpc.impl_kombu
+rabbit_host = 172.16.41.97
+rabbit_port = 5672
+rabbit_userid = guest
+rabbit_password = test123
+glance_host = 172.16.41.97
+enabled_backends = cb-gold, cb-silver, cb-bronze
+default_volume_type = gold, silver, bronze
+
+[database]
+connection = mysql://cinder:test123@172.16.41.97/cinder
+
+[keystone_authtoken]
+auth_uri = http://172.16.41.97:5000
+auth_host = 172.16.41.97
+auth_port = 35357
+auth_protocol = http
+admin_tenant_name = service
+admin_user = cinder
+admin_password = test123
+
+[cb-gold]
+cb_initiator_group_name = ALL
+volume_driver =  cinder.volume.drivers.cloudbyte.cloudbyte.CloudByteISCSIDriver 
+volume_backend_name = cb-gold
+san_ip = 172.16.51.32
+san_password = na
+tsm_name = VSM1
+cb_account_name = OPENSTACK_ACC
+cb_apikey = 2qKU31MlwYAp3ElxWfTbqToLfNIqMB-ezZR7Us3SO0Q9Q3LVHiefkm2n6-tDO0rJkH6kaQSyefrVnwqB2YlhkQ
+confirm_volume_create_sleep_counter = 10
+confirm_volume_create_retry_interval = 5
+add_qosgroup = latency:15,graceallowed:true,iopscontrol:true,memlimit:0,tpcontrol:false,throughput:0,iops:50,networkspeed:0
+create_volume = compression:off,deduplication:off,blocklength:512B,sync:always,protocoltype:ISCSI,recordsize:4k
+
+[cb-silver]
+cb_initiator_group_name = ALL
+volume_driver =  cinder.volume.drivers.cloudbyte.cloudbyte.CloudByteISCSIDriver
+volume_backend_name = cb-silver
+san_ip = 172.16.51.32
+san_password = na
+tsm_name = VSM2
+cb_account_name = OPENSTACK_ACC
+cb_apikey = 2qKU31MlwYAp3ElxWfTbqToLfNIqMB-ezZR7Us3SO0Q9Q3LVHiefkm2n6-tDO0rJkH6kaQSyefrVnwqB2YlhkQ
+confirm_volume_create_sleep_counter = 10
+confirm_volume_create_retry_interval = 5
+add_qosgroup = latency:15,graceallowed:true,iopscontrol:true,memlimit:0,tpcontrol:false,throughput:0,iops:50,networkspeed:0
+create_volume = compression:off,deduplication:off,blocklength:512B,sync:always,protocoltype:ISCSI,recordsize:4k
+
+[cb-bronze]
+cb_initiator_group_name = ALL
+volume_driver =  cinder.volume.drivers.cloudbyte.cloudbyte.CloudByteISCSIDriver
+volume_backend_name = cb-bronze
+san_ip = 172.16.51.32
+san_password = na
+tsm_name = VSM3
+cb_account_name = OPENSTACK_ACC
+cb_apikey = 2qKU31MlwYAp3ElxWfTbqToLfNIqMB-ezZR7Us3SO0Q9Q3LVHiefkm2n6-tDO0rJkH6kaQSyefrVnwqB2YlhkQ
+confirm_volume_create_sleep_counter = 10
+confirm_volume_create_retry_interval = 5
+add_qosgroup = latency:15,graceallowed:true,iopscontrol:true,memlimit:0,tpcontrol:false,throughput:0,iops:50,networkspeed:0
+create_volume = compression:off,deduplication:off,blocklength:512B,sync:always,protocoltype:ISCSI,recordsize:4k
+
