@@ -50,15 +50,23 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         1.2.5 - Fixed a bug w.r.t create snapshot path as None
         1.2.6 - Fixed a bug w.r.t initiator group selection
         1.2.7 - Fixed snapshot path error logging
+        1.2.8 - Create volume for migration from Ice House to Kilo
     """
 
-    VERSION = '1.2.7'
+    VERSION = '1.2.8'
     volume_stats = {}
 
     # Global variables used during Setup Error Check
     ACCOUNT_NAME = 'cb_account_name'
     TSM_NAME = 'cb_tsm_name'
     APIKEY = 'cb_apikey'
+
+    # Constants used for migration purposes
+    SUPPORTED_OS_MIGRATION_KEYS = {"is_migration", "icehouse_to_kilo"}
+    SUPPORTED_OS_MIGRATION_CHECK_IQN_PROP = {"check_iqn"}
+    SUPPORTED_OS_MIGRATION_TRUTHS = {"yes", "Yes", "YES",
+                                     "1",
+                                     "true", "True", "TRUE"}
 
     def __init__(self, *args, **kwargs):
         super(CloudByteISCSIDriver, self).__init__(*args, **kwargs)
@@ -507,6 +515,37 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
         return volume_id
 
+    def _get_volume_by_iqn(self, cb_volumes, iqn_value):
+        """Filter volume by iqn in CloudByte storage."""
+
+        vol_res = None
+
+        if cb_volumes is not None:
+            vol_res = cb_volumes.get('listFilesystemResponse')
+
+        if vol_res is None:
+            LOG.error(_LE("get cb volume by iqn - failed "
+                          "- no api response received "
+                          "- iqn: '%s'."), iqn_value)
+            return None
+
+        volumes = vol_res.get('filesystem')
+
+        if volumes is None:
+            LOG.error(_LE("get cb volume by iqn - failed "
+                          "- no volumes found at cb storage "
+                          "- iqn: '%s'."), iqn_value)
+            return None
+
+        filtered_volume = None
+
+        for vol in volumes:
+            if vol['iqnname'] == iqn_value:
+                filtered_volume = vol
+                break
+
+        return filtered_volume
+
     def _get_qosgroupid_id_from_response(self, cb_volumes, volume_id):
         volumes = cb_volumes['listFilesystemResponse']['filesystem']
         qosgroup_id = None
@@ -525,7 +564,7 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
             '%s %s %s' % (volume['ipaddress'] + ':3260', volume['iqnname'], 0)
         )
 
-        # Will provide CHAP Authentication on forthcoming patches/release
+        # CHAP Authentication related
         model_update['provider_auth'] = None
 
         if chap:
@@ -833,13 +872,15 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
 
         return model_update
 
-    def _get_qos_by_volume_type(self, ctxt, type_id):
-        """Get the properties which can be QoS or file system related."""
-
-        update_qos_group_params = {}
-        update_file_system_params = {}
+    def _get_extra_specs_by_volume_type(self, ctxt, type_id):
 
         volume_type = volume_types.get_volume_type(ctxt, type_id)
+        if volume_type is None:
+            LOG.error(_LE("get extra specs by volume type - failed "
+                          "- volume type not found"
+                          "- type id: '%s'."), type_id)
+            return None
+
         qos_specs_id = volume_type.get('qos_specs_id')
         extra_specs = volume_type.get('extra_specs')
 
@@ -847,8 +888,21 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
             specs = qos_specs.get_qos_specs(ctxt, qos_specs_id)['specs']
 
             # Override extra specs with specs
-            # Hence specs will prefer QoS than extra specs
             extra_specs.update(specs)
+
+        return extra_specs
+
+    def _get_qos_by_volume_type(self, ctxt, type_id, extra_specs=None):
+        """Get the properties which can be qos or file system related."""
+
+        if extra_specs is None:
+            extra_specs = self._get_extra_specs_by_volume_type(ctxt, type_id)
+
+        update_qos_group_params = {}
+        update_file_system_params = {}
+
+        if extra_specs is None:
+            return update_qos_group_params, update_file_system_params
 
         for key, value in extra_specs.items():
             if ':' in key:
@@ -862,6 +916,53 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
                 update_file_system_params[key] = value
 
         return update_qos_group_params, update_file_system_params
+
+    def _get_migration_flag_by_volume_type(self, ctxt, type_id,
+                                           extra_specs=None):
+        """Get the migration flag from volume type."""
+
+        if extra_specs is None:
+            extra_specs = self._get_extra_specs_by_volume_type(ctxt, type_id)
+
+        if extra_specs is None:
+            return None
+
+        migration_flag = {}
+        for key, value in extra_specs.items():
+            # sometimes the keys are prefixed
+            # e.g. migrate:icehouse-to-kilo
+            if ':' in key:
+                fields = key.split(':')
+                key = fields[1]
+
+            if (key in self.SUPPORTED_OS_MIGRATION_KEYS and
+                    value in self.SUPPORTED_OS_MIGRATION_TRUTHS):
+                migration_flag[key] = value
+                break
+
+        return migration_flag
+
+    def _get_migrating_iqn_by_volume_type(self, ctxt, type_id,
+                                          extra_specs=None):
+        """Get the migrating iqn from volume type."""
+
+        if extra_specs is None:
+            extra_specs = self._get_extra_specs_by_volume_type(ctxt, type_id)
+
+        if extra_specs is None:
+            return None
+
+        for key, value in extra_specs.items():
+            # sometimes the keys are prefixed
+            # e.g. migrate:check_iqn
+            if ':' in key:
+                fields = key.split(':')
+                key = fields[1]
+
+            if key in self.SUPPORTED_OS_MIGRATION_CHECK_IQN_PROP:
+                return value
+
+        return None
 
     def _update_initiator_group(self, volume_id, ig_name):
 
@@ -894,6 +995,60 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
                   {'vol': volume_id,
                    'ig': ig_name})
 
+    def _check_create_for_migration(self, volume, extra_specs=None):
+        type_id = volume.get('volume_type_id')
+
+        if type_id is None:
+            return False
+
+        ctxt = context.get_admin_context()
+        migration_flag = (
+            self._get_migration_flag_by_volume_type(
+                ctxt, type_id, extra_specs))
+
+        if migration_flag is not None and len(migration_flag) != 0:
+            return True
+        else:
+            return False
+
+    def _create_volume_for_migration(self, volume, extra_specs=None):
+        # this depends on the presence of volume type
+        type_id = volume.get('volume_type_id')
+
+        if type_id is None:
+            LOG.error(_LE("create cb volume for migration - failed "
+                          "- missing volume type "
+                          "- os volume: '%s'."), volume['id'])
+            return None
+
+        ctxt = context.get_admin_context()
+        migrating_iqn = (
+            self._get_migrating_iqn_by_volume_type(ctxt, type_id, extra_specs))
+
+        if migrating_iqn is None:
+            LOG.error(_LE("create cb volume for migration - failed "
+                          "- iqn is missing "
+                          "- os volume: '%(vol)s' "),
+                      {'vol': volume['id']})
+            return None
+
+        # list all volumes from cb storage
+        cb_volumes = self._api_request_for_cloudbyte(
+            'listFileSystem', params={})
+        migrating_volume = self._get_volume_by_iqn(cb_volumes,
+                                                   migrating_iqn)
+
+        if migrating_volume is None:
+            LOG.error(_LE("create cb volume for migration - failed "
+                          "- volume not found for provided iqn "
+                          "- os volume: '%(vol)s' "
+                          "- iqn: '%(iqn)s'."),
+                      {'vol': volume['id'],
+                       'iqn': migrating_iqn})
+            return None
+
+        return self._build_provider_details_from_volume(migrating_volume, None)
+
     def create_volume(self, volume):
 
         qos_group_params = {}
@@ -905,15 +1060,31 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         # Get account id of this account
         account_id = self._get_account_id_from_name(account_name)
 
+        # extract all the extra specs from volume type
+        ctxt = context.get_admin_context()
+        type_id = volume.get('volume_type_id')
+        extra_specs = self._get_extra_specs_by_volume_type(ctxt, type_id)
+
+        # check if the creation is meant for OpenStack migration purposes
+        is_create_for_migration = self._check_create_for_migration(
+            volume, extra_specs)
+
+        if is_create_for_migration:
+            provider = self._create_volume_for_migration(volume, extra_specs)
+            if provider is not None:
+                return provider
+            else:
+                msg = _("create cb volume - failed "
+                        "- error during create for migration "
+                        "- volume: '%s'") % volume['id']
+                raise exception.VolumeBackendAPIException(data=msg)
+
         # Set backend storage volume name using OpenStack volume id
         cb_volume_name = volume['id'].replace("-", "")
 
-        ctxt = context.get_admin_context()
-        type_id = volume['volume_type_id']
-
         if type_id is not None:
             qos_group_params, file_system_params = (
-                self._get_qos_by_volume_type(ctxt, type_id))
+                self._get_qos_by_volume_type(ctxt, type_id, extra_specs))
 
         LOG.debug("Will create a volume [%(cb_vol)s] in TSM [%(tsm)s] "
                   "at CloudByte storage w.r.t "
