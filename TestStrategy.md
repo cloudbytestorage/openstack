@@ -72,3 +72,10 @@
   - remove VSM @ ec. 
   - verify cinder-volume service should be in a running state.
   - verify cinder-volume service should be in a running state even after cinder-volume restart.
+
+### Migration Related Test Scenarios
+- create a KILO VM with bootable disk in a CloudByte storage backend
+- attach data disks to above KILO VM
+- migrate the KILO VM to another backend of CloudByte storage within the same OpenStack environment
+- migrate the KILO VM to Master OpenStack environment
+- migrate the Master VM to another backend of CloudByte storage within the same OpenStack environment
