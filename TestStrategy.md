@@ -53,6 +53,12 @@
 - set logging to INFO mode @ cinder.conf
 - shutdown the EC network & verify os, logs
 - shutdown EC & verify os, logs
+- provide wrong VSM name & restart & execute create volume
+- provide wrong API key & restart & execute create volume
+- provide wrong Account name & restart & execute create volume
+- do not provide VSM name & restart & execute create volume
+- do not provide API key & restart & execute create volume
+- do not provide Account name & restart & execute create volume
 - reduce the no of attempts & interval for create volume @ conf -- verify logs -- delete volume
 - reduce the no of attempts & interval for delete volume @ conf -- verify logs -- retry delete
 - create volume @ os -- delete from ec -- update IOPS @ os
