@@ -36,6 +36,7 @@
 - modify noofcopies @ os -- verify @ ec & rc
 - enable readonly @ os -- verify @ ec & rc
 - disable readonly @ os -- verify @ ec & rc
+- create a volume without chap - now set chap at cinder.conf - restart - create a snapshot & then clone of volume
 - check the scheduler logs 
   - verify if the backends available capacity matches the corresponding VSMs'.
   - check if there is a suitable rc or cli
@@ -67,6 +68,7 @@
 - create snapshot @ os -- delete from ec -- create clone from os & verify os logs
 - create snapshot @ os -- create clone @ os -- delete clone @ ec -- delete clone @ os & verify os logs
 - create snapshot @ os -- create clone @ os -- delete clone & snapshot @ ec -- delete clone @ os & verify os logs
+- create a volume without chap - now set a wrong chap at cinder.conf - restart - create a snapshot & then clone of volume
 - delete VSM @ ec -- verify logs @ os
 - delete VSM @ ec -- create volume @ os
 - delete VSM @ ec -- delete volume @ os
