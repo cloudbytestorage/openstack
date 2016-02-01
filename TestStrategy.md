@@ -31,10 +31,7 @@
 - enable compression @ os -- verify @ ec & rc
 - disable compression @ os -- verify @ ec & rc
 - enable sync @ os -- verify @ ec & rc
-- modify noofcopies @ os -- verify @ ec & rc
-- enable readonly @ os -- verify @ ec & rc
-- disable readonly @ os -- verify @ ec & rc
-- create a volume without chap - now set chap at cinder.conf - restart - create a snapshot & then clone of volume
+- disable sync @ os -- verify @ ec & rc
 - check the scheduler logs 
   - verify if the backends available capacity matches the corresponding VSMs'.
   - check if there is a suitable rc or cli
@@ -78,6 +75,7 @@
   - remove VSM @ ec. 
   - verify cinder-volume service should be in a running state.
   - verify cinder-volume service should be in a running state even after cinder-volume restart.
+- create a volume without chap - now set chap at cinder.conf - restart - create a snapshot & then clone of volume
 
 ### Migration Related Test Scenarios
 - create a KILO VM with bootable disk in a CloudByte storage backend
