@@ -32,6 +32,7 @@
 - disable compression @ os -- verify @ ec & rc
 - enable sync @ os -- verify @ ec & rc
 - disable sync @ os -- verify @ ec & rc
+- modify noofcopies @ os -- verify @ ec & rc
 - check the scheduler logs 
   - verify if the backends available capacity matches the corresponding VSMs'.
   - check if there is a suitable rc or cli
