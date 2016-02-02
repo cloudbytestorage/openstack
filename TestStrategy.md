@@ -72,7 +72,6 @@
   - remove VSM @ ec. 
   - verify cinder-volume service should be in a running state.
   - verify cinder-volume service should be in a running state even after cinder-volume restart.
-- create a volume without chap - now set chap at cinder.conf - restart - create a snapshot & then clone of volume
 
 ### Migration Related Test Scenarios
 - create a KILO VM with bootable disk in a CloudByte storage backend
