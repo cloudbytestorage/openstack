@@ -40,10 +40,6 @@
 - check if the INFO, ERROR, DEBUG, WARNING logs are supportable & debuggable
 - change the log level to DEBUG & re-run above cases
 - check if DEBUG logs are proper
-  
-
-### Positive Collection Based Test Scenarios
-- 
 
 ### Negative Test Scenarios
 - check the cinder-volume logs for the start timestamp (st)
@@ -64,7 +60,7 @@
 - create snapshot @ os -- delete from ec -- create clone from os & verify os logs
 - create snapshot @ os -- create clone @ os -- delete clone @ ec -- delete clone @ os & verify os logs
 - create snapshot @ os -- create clone @ os -- delete clone & snapshot @ ec -- delete clone @ os & verify os logs
-- create a volume without chap - now set a wrong chap at cinder.conf - restart - create a snapshot & then clone of volume
+- create a volume without chap - now set a wrong chap at cinder.conf - restart - create a volume @ os & verify os logs
 - delete VSM @ ec -- verify logs @ os
 - delete VSM @ ec -- create volume @ os
 - delete VSM @ ec -- delete volume @ os
@@ -82,5 +78,3 @@
 - create a KILO VM with bootable disk in a CloudByte storage backend
 - attach data disks to above KILO VM
 - migrate the KILO VM to another backend of CloudByte storage within the same OpenStack environment
-- migrate the KILO VM to Master OpenStack environment
-- migrate the Master VM to another backend of CloudByte storage within the same OpenStack environment
