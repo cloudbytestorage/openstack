@@ -1,4 +1,8 @@
-#### IMP : USE HORIZON THEN OPENSTACK CLI FOR PERFORMING THE TESTS BELOW
+### Pre-requisities
+- settings at cinder.conf
+ - enable_v1_api=false
+ - enable_v2_api=false
+ - enable_v3_api=true
 
 ### Positive Test Scenarios
 - check the cinder-volume logs for the start timestamp (st)
