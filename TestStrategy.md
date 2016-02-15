@@ -77,3 +77,12 @@
 - create a KILO VM with bootable disk in a CloudByte storage backend
 - attach data disks to above KILO VM
 - migrate the KILO VM to another backend of CloudByte storage within the same OpenStack environment
+ 
+### Use Case Related Test Scenarios
+- create a volume & attach it to multiple instances (VM A & VM B) on the same host.
+ - create files on the volume
+ - detach from instance VM A
+ - check the file from instance VM B
+ - detach from instance VM B
+ - attach from instance VM A
+ - check the file from VM A
