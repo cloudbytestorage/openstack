@@ -12,13 +12,13 @@ Following steps were done on
 
 
 ### On Ubuntu box
-#### Install iSCSI Initiator
+##### Install iSCSI Initiator
 - Configure Ubuntu Server as an iSCSI initiator install the open-iscsi package. 
 ```
   sudo apt install open-iscsi
 ```
 
-#### iSCSI Initiator Configuration
+##### iSCSI Initiator Configuration
 - Edit */etc/iscsi/iscsid.conf*
 ```
   node.startup = automatic
