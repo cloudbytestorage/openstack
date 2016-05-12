@@ -1,11 +1,18 @@
 
 ### OpenStack LVM using CloudByte's iSCSI Volume
 To use CloudByte's iSCSI volume as the underlying source for lvm we need to follow some guidelines:
-- Create an iSCSI volume in CloudByte ElastiCenter and assign an initiator group.
-  - The initiator group can be 'ALL' or user defined pointing to the OpenStack machine
-- The following steps were done on Ubuntu 14.04 that hosted the OpenStack setup.
 
-#### iSCSI Initiator Install
+Following steps were done on
+- Ubuntu 14.04 that hosted the OpenStack Liberty
+- ElastiCenter 1.3.0.824
+
+### Using ElastiCenter UI
+- Create an iSCSI volume in CloudByte ElastiCenter.
+- Set the initiator group to 'ALL' for this new volume.
+
+
+### On Ubuntu box
+#### Install iSCSI Initiator
 - Configure Ubuntu Server as an iSCSI initiator install the open-iscsi package. 
 ```
   sudo apt install open-iscsi
@@ -68,7 +75,7 @@ dmesg | grep sd
 ```
 
 - In the output above **sdb** is the new iSCSI disk. 
-- Remember this is just an example; the output you see on your screen will vary.
+  - this is just an example; the output you see on your screen will vary.
 - Next Steps: 
   - create a partition, 
   - format the file system, and
@@ -111,7 +118,7 @@ dmesg | grep sd
   NOTE : here /dev/sdb1 is a valid unused device
   
   NOTE : If executing 'pvcreate' results into below error
-        Device /dev/sdb1 not found (or ignored by filtering).
+         Device /dev/sdb1 not found (or ignored by filtering).
   Try below :
         sudo vi /etc/lvm/lvm.conf
         Comment the following line
@@ -128,10 +135,11 @@ dmesg | grep sd
   stack-volumes-lvmdriver-1   1   1   0 wz--n- 10.01g  9.01g
 ```
 
-- Create a new LVM backend in **cinder.conf** and
-- add the new volume-group to this new LVM backend
-  - e.g. below example creates a backend called 'cloudbyte-lvm' & 
-  - adds 'cinder-cb-volumes' as the volume group
+- Register a new LVM backend in **cinder.conf** and
+- Add the newly created volume-group to this new LVM backend
+  - e.g. below edit 
+    - registers a new backend called 'cloudbyte-lvm'
+    - adds 'cinder-cb-volumes' as the volume group
 ```
   sudo vi /etc/cinder/cinder.conf
   
