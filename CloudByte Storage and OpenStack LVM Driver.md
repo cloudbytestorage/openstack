@@ -79,7 +79,7 @@ dmesg | grep sd
 - Next Steps: 
   - create a partition, 
   - format the file system, and
-  - mount the new iSCSI disk. 
+  - login to the new iSCSI disk. 
 ```
   sudo fdisk /dev/sdb
   n
