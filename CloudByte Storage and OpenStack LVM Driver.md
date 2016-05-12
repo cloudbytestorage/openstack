@@ -1,3 +1,4 @@
+
 ### OpenStack LVM using CloudByte's iSCSI Volume
 To use CloudByte's iSCSI volume as the underlying source for lvm we need to follow some guidelines:
 - Create an iSCSI volume in CloudByte ElastiCenter and assign an initiator group.
@@ -15,29 +16,32 @@ To use CloudByte's iSCSI volume as the underlying source for lvm we need to foll
 ```
   node.startup = automatic
 ```
-- Check which targets are available by using the *iscsiadm* utility. Enter the following in a terminal:
+
+- Check the available targets
 ```
   sudo iscsiadm -m discovery -t st -p 192.168.0.10
-```
-  1. -m: determines the mode that iscsiadm executes in.
-  2. -t: specifies the type of discovery.
-  3. -p: option indicates the target IP address.
-```
+  
+  options
+  -m: determines the mode that iscsiadm executes in.
+  -t: specifies the type of discovery.
+  -p: option indicates the target IP address.
+  
   NOTE : Change example 192.168.0.10 to the target IP address on your network.
 ```
+
 - If the target is available you should see output similar to the following:
 ```
   192.168.0.10:3260,1 iqn.1992-05.com.emc:sl7b92030000520000-2
-```
-```
+  
   NOTE : The iqn number and IP address above will vary depending on your hardware.
 ```
-- You should now be able to connect to the iSCSI target, and depending on your target setup you may have to enter user credentials. Login to the iSCSI node:
+
+- Connect to the iSCSI target
 ```
   sudo iscsiadm -m node --login
 ```
-- Check to make sure that the new disk has been detected using *dmesg*:
 
+- Check to make sure that the new disk has been detected using *dmesg*:
 ```
 dmesg | grep sd
 
@@ -62,8 +66,13 @@ dmesg | grep sd
   [ 2486.960577]  sdb: sdb1
   [ 2486.964862] sd 4:0:0:3: [sdb] Attached SCSI disk
 ```
-- In the output above *sdb* is the new iSCSI disk. Remember this is just an example; the output you see on your screen will vary.
-- Next, create a partition, format the file system, and mount the new iSCSI disk. In a terminal enter:
+
+- In the output above **sdb** is the new iSCSI disk. 
+- Remember this is just an example; the output you see on your screen will vary.
+- Next Steps: 
+  - create a partition, 
+  - format the file system, and
+  - mount the new iSCSI disk. 
 ```
   sudo fdisk /dev/sdb
   n
@@ -71,69 +80,77 @@ dmesg | grep sd
   enter
   enter
   w
+  
+  NOTE :  The above commands are from inside the fdisk utility; see man fdisk for more detailed instructions. 
+  NOTE : cfdisk utility is sometimes more user friendly.
 ```
-- The above commands are from inside the fdisk utility; see man fdisk for more detailed instructions. Also, the cfdisk utility is sometimes more user friendly.
-- Now format the file system:
+
+- Format the file system
 ```
   sudo mkfs.ext4 /dev/sdb1
 ```
 
-### Configuring and using CloudByte's iSCSI volume as LVM volume group
+#### Configuring CloudByte's iSCSI volume as LVM volume group
 
-- After above steps are done we need to proceed with the next steps, which involves the creation of a new lvm group on the iSCSI volume created and added, and to use it for volume and VM creation in OpenStack.
-- Now run below command to verify existence of lvm volume groups
+- Verify existence of lvm volume groups
 ```
   sudo vgs
-```
-  You will get the following output:
-```
+  
+  You may get the following output:
   VG                        #PV #LV #SN Attr   VSize  VFree
   stack-volumes-default       1   0   0 wz--n- 10.01g 10.01g
   stack-volumes-lvmdriver-1   1   1   0 wz--n- 10.01g  9.01g
 ```
-- Run the following commands to create the new lvm volume group
+
+- Create a new lvm volume group on above created partition
 ```
-  // Assuming /dev/sdb is the partition you want to use for Cinder LVM integration, 
-  sudo pvcreate /dev/sdb1                 			// here /dev/sdb1 is a valid unused device
-  sudo vgcreate cinder-volumes /dev/sdb1
+  sudo pvcreate /dev/sdb1 
+  sudo vgcreate cinder-cb-volumes /dev/sdb1
+  
+  NOTE : Assuming /dev/sdb is the partition you want to use 
+  NOTE : here /dev/sdb1 is a valid unused device
+  
+  NOTE : If executing 'pvcreate' results into below error
+        Device /dev/sdb1 not found (or ignored by filtering).
+  Try below :
+        sudo vi /etc/lvm/lvm.conf
+        Comment the following line
+        global_filter = [ "a|loop0|", "a|loop1|", "r|.*|" ]  # from devstack
 ```
-```
-  NOTE : You may get the following error
-         sudo pvcreate /dev/sdb1
-         Device /dev/sdb1 not found (or ignored by filtering).
-  SOLUTION :
-          sudo vi /etc/lvm/lvm.conf
-          Comment the following line
-          global_filter = [ "a|loop0|", "a|loop1|", "r|.*|" ]  # from devstack
-```
-- Run below command to verify existence of new lvm volume group added.
+  
+- Verify existence of new lvm volume group that was just added.
 ```
   sudo vgs
   
   VG                        #PV #LV #SN Attr   VSize  VFree
-  cinder-volumes              1   1   0 wz--n- 10.00g  9.00g
+  cinder-cb-volumes           1   1   0 wz--n- 10.00g  9.00g
   stack-volumes-default       1   0   0 wz--n- 10.01g 10.01g
   stack-volumes-lvmdriver-1   1   1   0 wz--n- 10.01g  9.01g
 ```
-- Now we need to create a new LVM backend in *cinder.conf* and add the new volume-group to it:
+
+- Create a new LVM backend in **cinder.conf** and
+- add the new volume-group to this new LVM backend
+  - e.g. below example creates a backend called 'cloudbyte-lvm' & 
+  - adds 'cinder-cb-volumes' as the volume group
 ```
   sudo vi /etc/cinder/cinder.conf
   
   [DEFAULT]
   default_volume_type = lvmdriver-1,cb-lvm
-  enabled_backends = lvmdriver-1,cloudbyte-lvm
+  enabled_backends = lvmdriver-1, cloudbyte-lvm
   
   [cloudbyte-lvm]
   lvm_type = default
   iscsi_helper = tgtadm
-  volume_group = cinder-volumes
+  volume_group = cinder-cb-volumes
   volume_driver = cinder.volume.drivers.lvm.LVMVolumeDriver
   volume_backend_name = cloudbyte-lvm
 ```
+
+- Create a new volume type for the backend that was newly created
 ```
-  NOTE : After adding the backend create a new volume type for it and assign the volume_backend_name to it as mentioned in     
-         default_volume_type.
 ```
+
 - Now restart the 
 
   
