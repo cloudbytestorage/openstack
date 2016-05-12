@@ -166,6 +166,7 @@ dmesg | grep sd
   sudo cinder-api restart
   sudo cinder-scheduler restart
   sudo cinder-volume restart
+  service tgt restart
   
   sudo cinder-api status
   sudo cinder-scheduler status
