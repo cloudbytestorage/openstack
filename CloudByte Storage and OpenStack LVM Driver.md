@@ -6,12 +6,12 @@ Following steps were done on
 - Ubuntu 14.04 that hosted the OpenStack Liberty
 - ElastiCenter 1.3.0.824
 
-### Using ElastiCenter UI
+#### Using ElastiCenter UI
 - Create an iSCSI volume in CloudByte ElastiCenter.
 - Set the initiator group to 'ALL' for this new volume.
 
 
-### On Ubuntu box
+#### On Ubuntu box
 ##### Install iSCSI Initiator
 - Configure Ubuntu Server as an iSCSI initiator install the open-iscsi package. 
 ```
@@ -97,7 +97,7 @@ dmesg | grep sd
   sudo mkfs.ext4 /dev/sdb1
 ```
 
-#### Configuring CloudByte's iSCSI volume as LVM volume group
+##### Configuring CloudByte's iSCSI volume as LVM volume group
 
 - Verify existence of lvm volume groups
 ```
@@ -163,6 +163,13 @@ dmesg | grep sd
 
 - Restart the cinder-services
 ```
+  sudo cinder-api restart
+  sudo cinder-scheduler restart
+  sudo cinder-volume restart
+  
+  sudo cinder-api status
+  sudo cinder-scheduler status
+  sudo cinder-volume status
 ```
 
 - Verify the volume types & specs associated with them
@@ -175,5 +182,3 @@ dmesg | grep sd
   | b19f5d36-032c-4e77-a498-875cebfa325a |    cb-lvm   | {u'volume_backend_name': u'cloudbyte-lvm'} |
   +--------------------------------------+-------------+--------------------------------------------+
 ```
-
-  
