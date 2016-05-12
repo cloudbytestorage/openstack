@@ -163,14 +163,13 @@ dmesg | grep sd
 
 - Restart the cinder-services
 ```
-  sudo cinder-api restart
-  sudo cinder-scheduler restart
-  sudo cinder-volume restart
-  service tgt restart
+  service cinder-api restart
+  service cinder-scheduler restart
+  service cinder-volume restart
   
-  sudo cinder-api status
-  sudo cinder-scheduler status
-  sudo cinder-volume status
+  service cinder-api status
+  service cinder-scheduler status
+  service cinder-volume status
 ```
 
 - Verify the volume types & specs associated with them
