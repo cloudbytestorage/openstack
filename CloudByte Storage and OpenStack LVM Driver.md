@@ -149,11 +149,14 @@ dmesg | grep sd
 
 - Create a new volume type for the backend that was newly created
 ```
-  COMMAND :
-      cinder type-create cb-lvm;
-      cinder type-key cb-lvm set volume_backend_name cloudbyte-lvm;)
+  cinder type-create cb-lvm
+  cinder type-key cb-lvm set volume_backend_name cloudbyte-lvm
 ```
 
-- Now restart the cinder-services and you are good to go with your operations.
+- Restart the cinder-services
+```
+```
+
+- Verify the volume types & specs associated with them
 
   
