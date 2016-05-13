@@ -25,7 +25,7 @@ from six.moves import urllib
 from cinder import context
 from cinder import exception
 from cinder.i18n import _, _LE, _LI
-from cinder.openstack.common import loopingcall
+from oslo_service import loopingcall
 from cinder.volume.drivers.cloudbyte import options
 from cinder.volume.drivers.san import san
 from cinder.volume import qos_specs
