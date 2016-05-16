@@ -1,32 +1,38 @@
-## OpenStack installation and configuration against CloudByte Cinder driver
+### OpenStack installation and configuring CloudByte storage as the cinder driver
 
-- For testing OpenStack against the ElastiCenter build, it is recommended to use "devstack all in one" setup. 
-- For setting up devstack following configuration are required:
+- To try/test OpenStack against CloudByte storage;
+  - one can start with the easy way i.e. using "devstack all in one" setup. 
+
+- Devstack requirements:
 ```
   OS : Ubuntu 14.04
   MEMORY : 4GB(minimum)(Recommended to use 8GB)
   VCPUS : 6(or more)
   HARD DISK : 60-80GB
 ```
-- Once the system insatllation and setup is done we need to download the devstack and install it. 
-- For downloading devstack use the link below:
+
+- Once the system installation and setup is done
+- We need to download the devstack and install it. 
 ```
-  git clone https://git.openstack.org/openstack-dev/devstack
-```
-- After downloading devstack go inside the devstack folder and check the version of OpenStack using(By default the branch version will be master):
-```
-  COMMAND : git status
+  >> git clone https://git.openstack.org/openstack-dev/devstack
+
+  NOTE :  After downloading devstack go inside the devstack folder and
+          check the version of OpenStack
+
+  >> git status
   OUTPUT :
         On branch master
         Your branch is up-to-date with 'origin/master'.
 
         nothing to commit, working directory clean
+
+  NOTE : To switch to some specific version run command:
+
+  >> git checkout stable/<STABLE_BRANCH_NAME>
 ```
-- To switch to some specific version run command:
-```
-  COMMAND : git checkout stable/<STABLE_BRANCH_NAME>
-```
-- Now we need to create a file "local.conf" and put the following content in it(Required for DevStack installation):
+
+- Create a file "local.conf" and paste the following content
+  - required for devstack installation
 ```
   [[local|localrc]]
   ADMIN_PASSWORD=test123
@@ -42,20 +48,24 @@
   API_RATE_LIMIT=False
   ENABLED_SERVICES=c-api,c-sch,c-vol,g-api,g-reg,horizon,key,mysql,n-api,n-cond,n-cpu,n-crt,n-obj,n-sch,nova,rabbit,tempest,n-novnc,n-xvnc,n-cauth,n-net
 ```
-- Now start the installation using:
+
+- Start installation by running below command:
 ```
   ./stack.sh
 ```
-- The installation takes some time, and after it is done we need to configure our CloudByte Cinder driver.
-- To do so we need to edit the following file:
+
+- Installation takes some time, and once installation is complete
+  - configure CloudByte cinder driver.
+- Edit following file:
 ```
   /etc/cinder/cinder.conf
 ```
-- Now we need to add the following entry in [DEFAULT] section and also our backends(Pointing to the VSMs of our ElastiCenter):
+
+- Add the following entries:
 ```
   [DEFAULT]
-  default_volume_type = gold,silver
-  enabled_backends = cb-gold,cb-silver
+  default_volume_type = gold, silver
+  enabled_backends = cb-gold, cb-silver
   
   [cb-gold]
   volume_driver = cinder.volume.drivers.cloudbyte.cloudbyte.CloudByteISCSIDriver
@@ -89,51 +99,54 @@
   cb_add_qosgroup = latency:15,graceallowed:true,iopscontrol:true,memlimit:0,tpcontrol:false,throughput:0,iops:20,networkspeed:0
   cb_create_volume = compression:off,deduplication:off,blocklength:512B,sync:always,protocoltype:ISCSI,recordsize:4k
 ```
-- The "enabled_backends" variable contains the backend name specificaly pointing to the VSMs in ElastiCenter. Its value can be more than one depending on your choice and they can point to one or more VSMs.
-- Also the "default_volume_type" variable contains the volume types pointing to the backends mentioned above. You can have more than one volume type pointing to one or more backends.
-- To create the volume type and assigning them to one of the backend use:
+
+- NOTE : "enabled_backends" property contains the backend name pointing to VSMs (Virtual Storage Machines) of ElastiCenter. 
+  - Its value can be more than one.
+  - In other words it can point to one or more VSMs.
+- NOTE :  "default_volume_type" property contains the volume types
+  - Volume type are registered against a backend.
+  - There can be more than one volume types, each corresponding to a backend.
+
+- Create the volume type and assign them to backend
 ```
-  NOTE: TO RUN THE BELOW COMMAND GOTO DEVSTACK FOLDER AND RUN 
-        - source openrc admin admin
-      : NEED TO RUN IT JUST ONCE FOR YOUR SESSION.
-  COMMANDS:
-    cinder type-create <VOLUME_TYPE_NAME>; (CREATING)
-    cinder type-key <VOLUME_TYPE_NAME> set volume_backend_name <ENABLED_BACKEND_NAME>; (ASSIGNING)
-```
-- You can also associate some qos properties to the volume type, which can be used during volume creation:
-```
-  COMMAND:
-    cinder type-key <VOLUME_TYPE_NAME> set qos:iops=<VALUE> qos:graceallowed<true/false>;
+  NOTE : Run below command (per session)
+  >> cd < devstack folder >
+  >> source openrc admin admin
+  
+  >> cinder type-create <VOLUME_TYPE_NAME>
+  >> cinder type-key <VOLUME_TYPE_NAME> set volume_backend_name <ENABLED_BACKEND_NAME>
 ```
 
-## Running Tempest test suite on CloudByte Cinder driver
+- You can also associate QOS properties against the volume type
+```
+  >> cinder type-key <VOLUME_TYPE_NAME> set qos:iops=<VALUE> qos:graceallowed=<true/false>;
+```
+
+### Running tempest test suite on CloudByte cinder driver
 
 - OpenStack contains a test suite name "tempest" which runs a bunch of test against any cinder driver.
-- In order to run the tempest test suite on our CloudByte Cinder Driver, we need to do some configuration to the file:
+- In order to run the tempest test suite on CloudByte cinder driver, we need to do some configuration to the file:
 ```
   FILE:
-    /opt/stack/tempest/etc/tempest.conf
+  >> vi /opt/stack/tempest/etc/tempest.conf
   
   CHANGES TO BE ADDED:
     [volume]
     storage_protocol = iSCSI
     vendor_name = CloudByte
     ATTACH_ENCRYPTED_VOLUME_AVAILABLE = False
-    backend_names = <BACKEND_NAME1>,<BACKEND_NAME2> #For running temepst tests against multiple backend
+    backend_names = <BACKEND_NAME1>, <BACKEND_NAME2> #For running temepst tests against multiple backend
     
     [volume-feature-enabled]
     multi_backend = True #For enabling temepst tests against multiple backend
 ```
-- Now use the following command to run tempest test suite:
+
+- Run following command to run tempest test suite:
 ```
-  COMMAND:
-    tox -eall -- <tempest-test> --concurrency=1
-  
-  Since we are testing the cinder so use:
-    tox -eall -- volume --concurrency=1
+  >> tox -eall -- volume --concurrency=1
 ```
 
-### test matrix
+### Test matrix
 ```
   OS             ELASTICENTER      TEMPEST     QA      RALLY    CI    UT
   ----           ------------      -------     ---     -----    ---   ---
@@ -144,12 +157,12 @@
                  1.3.0.754
 ```
 
-### code contribution 
+### Code contribution
 ```
 email: openstack-dev@cloudbyte.com
 ```
 
-### support
+### Support related queries
 ```
 email: cb-support@cloudbyte.com
 ```
