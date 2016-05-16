@@ -100,6 +100,13 @@
   cb_create_volume = compression:off,deduplication:off,blocklength:512B,sync:always,protocoltype:ISCSI,recordsize:4k
 ```
 
+- Restart the cinder services:
+```
+  - Go to devstack folder and join the screen session of cinder services.
+  - Stop the services c-api, c-sch and c-vol.
+  - Start the services again.
+```
+
 - NOTE : "enabled_backends" property contains the backend name pointing to VSMs (Virtual Storage Machines) of ElastiCenter. 
   - Its value can be more than one.
   - In other words it can point to one or more VSMs.
