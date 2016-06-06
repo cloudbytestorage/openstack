@@ -51,9 +51,10 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         1.2.6 - Fixed a bug w.r.t initiator group selection
         1.2.7 - Fixed snapshot path error logging
         1.2.8 - Create volume for migration from Ice House to Kilo
+        1.2.9 - Fixed a bug w.r.t create volume without providing any volume type.
     """
 
-    VERSION = '1.2.8'
+    VERSION = '1.2.9'
     volume_stats = {}
 
     # Global variables used during Setup Error Check
@@ -1063,29 +1064,28 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         # extract all the extra specs from volume type
         ctxt = context.get_admin_context()
         type_id = volume.get('volume_type_id')
-        extra_specs = self._get_extra_specs_by_volume_type(ctxt, type_id)
-
-        # check if the creation is meant for OpenStack migration purposes
-        is_create_for_migration = self._check_create_for_migration(
-            volume, extra_specs)
-
-        if is_create_for_migration:
-            provider = self._create_volume_for_migration(volume, extra_specs)
-            if provider is not None:
-                return provider
-            else:
-                msg = _("create cb volume - failed "
-                        "- error during create for migration "
-                        "- volume: '%s'") % volume['id']
-                raise exception.VolumeBackendAPIException(data=msg)
-
-        # Set backend storage volume name using OpenStack volume id
-        cb_volume_name = volume['id'].replace("-", "")
-
+        
         if type_id is not None:
+            extra_specs = self._get_extra_specs_by_volume_type(ctxt, type_id)
+
+            # check if the creation is meant for OpenStack migration purposes
+            if self._check_create_for_migration(volume, extra_specs):
+                provider = self._create_volume_for_migration(volume, extra_specs)
+                if provider is not None:
+                    return provider
+                else:
+                    msg = _("create cb volume - failed "
+                            "- error during create for migration "
+                            "- volume: '%s'") % volume['id']
+                    raise exception.VolumeBackendAPIException(data=msg)
+
+
             qos_group_params, file_system_params = (
                 self._get_qos_by_volume_type(ctxt, type_id, extra_specs))
 
+        # Set backend storage volume name using OpenStack volume id
+        cb_volume_name = volume['id'].replace("-", "")
+        
         LOG.debug("Will create a volume [%(cb_vol)s] in TSM [%(tsm)s] "
                   "at CloudByte storage w.r.t "
                   "OpenStack volume [%(stack_vol)s].",
