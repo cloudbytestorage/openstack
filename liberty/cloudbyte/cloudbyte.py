@@ -51,9 +51,10 @@ class CloudByteISCSIDriver(san.SanISCSIDriver):
         1.2.6 - Fixed a bug w.r.t initiator group selection
         1.2.7 - Fixed snapshot path error logging
         1.2.8 - Create volume for migration from Ice House to Kilo
+        1.2.9 - Fixed a bug w.r.t create volume without providing any volume type
     """
 
-    VERSION = '1.2.8'
+    VERSION = '1.2.9'
     volume_stats = {}
 
     # Global variables used during Setup Error Check
